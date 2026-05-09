@@ -170,3 +170,99 @@ def test_most_played_player_is_benched_when_pool_exceeds_slots():
 
     assert "Veteran" in assignment.bench
     assert "Veteran" not in assignment.positions.values()
+
+
+def test_pitcher_preference_player_only_eligible_for_pitcher():
+    """A player with PITCHER preference only plays pitcher. With one PITCHER
+    and ten BOTH players (11 total), the PITCHER takes the mound and one BOTH
+    player sits."""
+    pitcher = Player(name="Pitcher", preference=Preference.PITCHER)
+    others = [Player(name=f"Both{i}", preference=Preference.BOTH) for i in range(10)]
+    state = GameState(players=[pitcher, *others])
+
+    assignment = assign_inning(state)
+
+    assert assignment.positions[Position.PITCHER] == "Pitcher"
+    assert "Pitcher" not in assignment.bench
+    pitcher_other_positions = [
+        pos for pos, name in assignment.positions.items()
+        if name == "Pitcher" and pos != Position.PITCHER
+    ]
+    assert pitcher_other_positions == []
+
+
+def test_pitcher_preference_player_sits_when_pitcher_is_locked():
+    """A PITCHER-preference player has no eligible position when pitcher is
+    already locked to someone else, so they sit."""
+    pitcher_pref = Player(name="Pitchy", preference=Preference.PITCHER)
+    locked_pitcher = Player(name="Locked", preference=Preference.BOTH)
+    others = [Player(name=f"Both{i}", preference=Preference.BOTH) for i in range(9)]
+    state = GameState(
+        players=[pitcher_pref, locked_pitcher, *others],
+        locks={Position.PITCHER: "Locked"},
+    )
+
+    assignment = assign_inning(state)
+
+    assert assignment.positions[Position.PITCHER] == "Locked"
+    assert "Pitchy" in assignment.bench
+
+
+def test_outfield_only_players_are_never_benched_when_their_slots_need_filling():
+    """The reported bug: with 14 players (10 IF + 4 OF) the only eligible OF
+    pool is the 4 OF-preference players, so all four must always play OF.
+    The 4 bench spots come from the IF surplus, not from OF."""
+    of_players = [
+        Player(name=f"OF{i}", preference=Preference.OUTFIELD, innings_played=10, innings_sat=0)
+        for i in range(4)
+    ]
+    if_players = [
+        Player(name=f"IF{i}", preference=Preference.INFIELD)
+        for i in range(10)
+    ]
+    state = GameState(players=[*of_players, *if_players])
+
+    assignment = assign_inning(state)
+
+    of_names = {p.name for p in of_players}
+    benched_of = of_names & set(assignment.bench)
+    assert benched_of == set(), f"OF-only players were benched: {benched_of}"
+
+    for of_pos in (Position.LEFT, Position.LEFT_CENTER, Position.RIGHT_CENTER, Position.RIGHT):
+        assert assignment.positions[of_pos] in of_names, (
+            f"{of_pos} should be filled by one of the four OF players"
+        )
+
+    assert len(assignment.bench) == 4
+    assert all(name.startswith("IF") for name in assignment.bench)
+
+
+def test_no_blank_positions_when_pool_can_cover_all_ten():
+    """With 14 players where every position has at least one eligible player,
+    no slot should be left blank."""
+    of_players = [Player(name=f"OF{i}", preference=Preference.OUTFIELD) for i in range(4)]
+    if_players = [Player(name=f"IF{i}", preference=Preference.INFIELD) for i in range(10)]
+    state = GameState(players=[*of_players, *if_players])
+
+    assignment = assign_inning(state)
+
+    unfilled = [pos for pos, name in assignment.positions.items() if name is None]
+    assert unfilled == []
+
+
+def test_unfillable_positions_remain_blank_when_no_eligible_player_exists():
+    """With 12 IF-preference players (zero OF-eligible), the 4 outfield slots
+    cannot be filled — they stay blank, and the bench size reflects the
+    actually-fillable headcount."""
+    if_players = [Player(name=f"IF{i}", preference=Preference.INFIELD) for i in range(12)]
+    state = GameState(players=if_players)
+
+    assignment = assign_inning(state)
+
+    of_positions = (Position.LEFT, Position.LEFT_CENTER, Position.RIGHT_CENTER, Position.RIGHT)
+    for pos in of_positions:
+        assert assignment.positions[pos] is None
+
+    filled = sum(1 for name in assignment.positions.values() if name is not None)
+    assert filled == 6
+    assert len(assignment.bench) == 12 - 6

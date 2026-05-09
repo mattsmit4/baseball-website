@@ -16,6 +16,8 @@ OUTFIELD_POSITIONS = {
 
 
 def _is_eligible(player: Player, position: Position) -> bool:
+    if player.preference == Preference.PITCHER:
+        return position == Position.PITCHER
     if position == Position.PITCHER:
         return not player.never_pitch
     if position in INFIELD_POSITIONS:
@@ -25,36 +27,90 @@ def _is_eligible(player: Player, position: Position) -> bool:
     return False
 
 
+def _max_matching(
+    players: list[Player], positions: list[Position]
+) -> dict[Position, str]:
+    """Bipartite max matching via augmenting paths. Within each player's
+    eligible positions, prefers the one they've played least recently — gives
+    soft position variety as a tiebreaker."""
+    pos_to_player: dict[Position, Player] = {}
+
+    def augment(player: Player, visited: set[Position]) -> bool:
+        eligible = sorted(
+            (
+                pos
+                for pos in positions
+                if _is_eligible(player, pos) and pos not in visited
+            ),
+            key=lambda pos: player.last_inning_at.get(pos, 0),
+        )
+        for pos in eligible:
+            visited.add(pos)
+            if pos not in pos_to_player or augment(pos_to_player[pos], visited):
+                pos_to_player[pos] = player
+                return True
+        return False
+
+    for player in players:
+        augment(player, set())
+
+    return {pos: p.name for pos, p in pos_to_player.items()}
+
+
 def assign_inning(state: GameState) -> InningAssignment:
-    positions: dict[Position, str | None] = {p: None for p in Position}
-
     locked_names = set(state.locks.values())
-    for position, player_name in state.locks.items():
-        positions[position] = player_name
-
     open_positions = [p for p in Position if p not in state.locks]
-    rotation_pool = [p for p in state.players if p.name not in locked_names]
+    pool = [p for p in state.players if p.name not in locked_names]
 
-    sorted_players = sorted(
-        rotation_pool,
+    pitcher_assignment: Player | None = None
+    if Position.PITCHER in open_positions:
+        pitcher_prefs = [p for p in pool if p.preference == Preference.PITCHER]
+        if pitcher_prefs:
+            pitcher_assignment = min(
+                pitcher_prefs,
+                key=lambda p: (p.innings_played - p.innings_sat, p.current_play_streak),
+            )
+
+    if pitcher_assignment is not None:
+        remaining_pool = [p for p in pool if p.name != pitcher_assignment.name]
+        remaining_positions = [p for p in open_positions if p != Position.PITCHER]
+    else:
+        remaining_pool = pool
+        remaining_positions = open_positions
+
+    sorted_pool = sorted(
+        remaining_pool,
         key=lambda p: (p.innings_played - p.innings_sat, p.current_play_streak),
         reverse=True,
     )
 
-    excess = len(sorted_players) - len(open_positions)
+    max_fillable = len(_max_matching(sorted_pool, remaining_positions))
+    excess = len(sorted_pool) - max_fillable
+
+    bench: list[Player] = []
+    playing = list(sorted_pool)
+
     if excess > 0:
-        bench = [p.name for p in sorted_players[:excess]]
-        playing = list(sorted_players[excess:])
-    else:
-        bench = []
-        playing = list(sorted_players)
+        for candidate in sorted_pool:
+            if len(bench) >= excess:
+                break
+            trial = [p for p in playing if p.name != candidate.name]
+            if len(_max_matching(trial, remaining_positions)) == max_fillable:
+                bench.append(candidate)
+                playing = trial
 
-    for position in open_positions:
-        eligible = [p for p in playing if _is_eligible(p, position)]
-        if not eligible:
-            continue
-        chosen = min(eligible, key=lambda p: p.last_inning_at.get(position, 0))
-        positions[position] = chosen.name
-        playing.remove(chosen)
+    matching = _max_matching(playing, remaining_positions)
 
-    return InningAssignment(inning=state.inning, positions=positions, bench=bench)
+    positions_filled: dict[Position, str | None] = {p: None for p in Position}
+    for pos, name in state.locks.items():
+        positions_filled[pos] = name
+    if pitcher_assignment is not None:
+        positions_filled[Position.PITCHER] = pitcher_assignment.name
+    for pos, name in matching.items():
+        positions_filled[pos] = name
+
+    return InningAssignment(
+        inning=state.inning,
+        positions=positions_filled,
+        bench=[p.name for p in bench],
+    )

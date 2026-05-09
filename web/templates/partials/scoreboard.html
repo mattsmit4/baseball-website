@@ -12,18 +12,21 @@
           class="mb-5 space-y-3 p-4 bg-white rounded-lg border border-slate-200">
       <input name="name" placeholder="Player name" required
              class="w-full p-3 border border-slate-300 rounded-lg">
-      <div class="flex gap-2 text-sm">
-        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
-          <input type="radio" name="preference" value="IF" required> Infield
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+          <input type="radio" name="preference" value="PITCHER" required> Pitcher
         </label>
-        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
+        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+          <input type="radio" name="preference" value="IF"> Infield
+        </label>
+        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
           <input type="radio" name="preference" value="OF"> Outfield
         </label>
-        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
+        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
           <input type="radio" name="preference" value="BOTH" checked> Both
         </label>
       </div>
-      <label class="flex items-center gap-2 text-sm">
+      <label class="never-pitch flex items-center gap-2 text-sm">
         <input type="checkbox" name="never_pitch" value="on"> Never pitch
       </label>
       <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">

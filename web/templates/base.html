@@ -7,6 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script src="https://unpkg.com/htmx-ext-ws@2.0.2/ws.js"></script>
+  <style>
+    form:has(input[name="preference"][value="PITCHER"]:checked) .never-pitch {
+      display: none;
+    }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
   <main class="max-w-md mx-auto p-4">

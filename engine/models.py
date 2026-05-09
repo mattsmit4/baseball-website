@@ -3,6 +3,7 @@ from enum import Enum
 
 
 class Preference(str, Enum):
+    PITCHER = "PITCHER"
     INFIELD = "IF"
     OUTFIELD = "OF"
     BOTH = "BOTH"
