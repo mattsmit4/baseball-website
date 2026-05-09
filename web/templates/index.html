@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-3xl font-bold mb-8 mt-4">Softball Rotation</h1>
+
+<form action="/games/new" method="post" class="mb-8">
+  <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
+    Create new game
+  </button>
+</form>
+
+<div class="border-t border-slate-200 pt-6">
+  <form action="/join" method="get" class="space-y-3">
+    <label class="block text-sm font-medium text-slate-700">Join existing game</label>
+    <input name="code" placeholder="ABCD" required maxlength="4"
+           pattern="[A-Za-z]{4}"
+           autocapitalize="characters" autocomplete="off"
+           class="w-full p-4 rounded-lg border border-slate-300 text-2xl uppercase font-mono tracking-widest text-center">
+    <button class="w-full bg-slate-700 hover:bg-slate-800 text-white py-4 rounded-lg text-lg font-semibold">
+      Join
+    </button>
+  </form>
+</div>
+{% endblock %}

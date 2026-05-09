@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Game {{ game.code }}{% endblock %}
+{% block content %}
+<div hx-ext="ws" ws-connect="/ws/{{ game.code }}">
+  {% include "partials/scoreboard.html" %}
+</div>
+{% endblock %}

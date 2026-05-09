@@ -22,14 +22,14 @@ class ConnectionManager:
             if not sockets:
                 del self._connections[code]
 
-    async def broadcast(self, code: str, payload: dict) -> None:
+    async def broadcast(self, code: str, html: str) -> None:
         async with self._lock:
             sockets = list(self._connections.get(code, ()))
         if not sockets:
             return
 
         results = await asyncio.gather(
-            *(ws.send_json(payload) for ws in sockets),
+            *(ws.send_text(html) for ws in sockets),
             return_exceptions=True,
         )
         dead = [ws for ws, r in zip(sockets, results) if isinstance(r, Exception)]

@@ -26,28 +26,28 @@ def test_ws_sends_initial_state_on_connect(client):
     _add(client, code, "Jason", "IF")
 
     with client.websocket_connect(f"/ws/{code}") as ws:
-        msg = ws.receive_json()
+        html = ws.receive_text()
 
-    assert msg["code"] == code
-    assert msg["status"] == "setup"
-    assert msg["players"][0]["name"] == "Jason"
+    assert code in html
+    assert "Jason" in html
+    assert 'id="scoreboard"' in html
 
 
 def test_ws_unknown_code_closes_connection(client):
     with pytest.raises(Exception):
         with client.websocket_connect("/ws/ZZZZ") as ws:
-            ws.receive_json()
+            ws.receive_text()
 
 
 def test_ws_broadcasts_state_change(client):
     code = _create(client)
 
     with client.websocket_connect(f"/ws/{code}") as ws:
-        ws.receive_json()
+        ws.receive_text()
         _add(client, code, "Jason", "IF")
-        msg = ws.receive_json()
+        html = ws.receive_text()
 
-    assert msg["players"][0]["name"] == "Jason"
+    assert "Jason" in html
 
 
 def test_ws_broadcasts_to_multiple_clients(client):
@@ -56,23 +56,23 @@ def test_ws_broadcasts_to_multiple_clients(client):
     with client.websocket_connect(f"/ws/{code}") as a, client.websocket_connect(
         f"/ws/{code}"
     ) as b:
-        a.receive_json()
-        b.receive_json()
+        a.receive_text()
+        b.receive_text()
 
         _add(client, code, "Jason", "IF")
 
-        msg_a = a.receive_json()
-        msg_b = b.receive_json()
+        html_a = a.receive_text()
+        html_b = b.receive_text()
 
-    assert msg_a["players"][0]["name"] == "Jason"
-    assert msg_b["players"][0]["name"] == "Jason"
+    assert "Jason" in html_a
+    assert "Jason" in html_b
 
 
 def test_ws_disconnect_cleans_up_connection(client):
     code = _create(client)
 
     with client.websocket_connect(f"/ws/{code}") as ws:
-        ws.receive_json()
+        ws.receive_text()
         assert ws_manager.connection_count(code) == 1
 
     assert ws_manager.connection_count(code) == 0
@@ -85,11 +85,8 @@ def test_ws_broadcasts_inning_advance(client):
     client.post(f"/games/{code}/start")
 
     with client.websocket_connect(f"/ws/{code}") as ws:
-        initial = ws.receive_json()
-        assert initial["inning"] == 1
-
+        ws.receive_text()
         client.post(f"/games/{code}/next-inning")
-        msg = ws.receive_json()
+        html = ws.receive_text()
 
-    assert msg["inning"] == 2
-    assert msg["last_assignment"]["inning"] == 2
+    assert "Inning 2" in html

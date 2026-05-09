@@ -1,7 +1,9 @@
 import copy
 from dataclasses import asdict
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Form, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from engine.models import GameState, Player, Position, Preference
@@ -14,6 +16,7 @@ from server.ws import ConnectionManager
 app = FastAPI(title="Softball Rotation")
 store = GameStore()
 ws_manager = ConnectionManager()
+templates = Jinja2Templates(directory="web/templates")
 
 
 class AddPlayerRequest(BaseModel):
@@ -58,6 +61,10 @@ def _serialize_game(game: Game) -> dict:
     }
 
 
+def _render_scoreboard(game_dict: dict) -> str:
+    return templates.get_template("partials/scoreboard.html").render(game=game_dict)
+
+
 def _get_game_or_404(code: str) -> Game:
     game = store.get(code.upper())
     if game is None:
@@ -75,8 +82,27 @@ async def _persist_and_broadcast(
     updated = store.update(code, new_state, **kwargs)
     assert updated is not None
     payload = _serialize_game(updated)
-    await ws_manager.broadcast(updated.code, payload)
+    await ws_manager.broadcast(updated.code, _render_scoreboard(payload))
     return payload
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse(request, "index.html")
+
+
+@app.post("/games/new")
+async def create_game_form():
+    game = store.create(GameState(players=[]))
+    return RedirectResponse(url=f"/games/{game.code}", status_code=303)
+
+
+@app.get("/join")
+async def join_game(code: str):
+    code = code.upper()
+    if store.get(code) is None:
+        return RedirectResponse(url="/?error=notfound", status_code=303)
+    return RedirectResponse(url=f"/games/{code}", status_code=303)
 
 
 @app.post("/games", status_code=201)
@@ -86,8 +112,16 @@ async def create_game():
 
 
 @app.get("/games/{code}")
-async def get_game(code: str):
-    return _serialize_game(_get_game_or_404(code))
+async def game_page(request: Request, code: str):
+    accept = request.headers.get("accept", "")
+    game = _get_game_or_404(code)
+    payload = _serialize_game(game)
+
+    if "text/html" in accept:
+        return templates.TemplateResponse(
+            request, "game.html", {"game": payload}
+        )
+    return payload
 
 
 @app.post("/games/{code}/players", status_code=201)
@@ -111,6 +145,24 @@ async def add_player(code: str, body: AddPlayerRequest):
         new_state = engine_add_player(game.state, new_player)
 
     return await _persist_and_broadcast(game.code, new_state)
+
+
+@app.post("/games/{code}/players-form", status_code=204)
+async def add_player_form(
+    code: str,
+    name: str = Form(...),
+    preference: Preference = Form(...),
+    never_pitch: str | None = Form(None),
+):
+    await add_player(
+        code,
+        AddPlayerRequest(
+            name=name,
+            preference=preference,
+            never_pitch=never_pitch == "on",
+        ),
+    )
+    return Response(status_code=204)
 
 
 @app.delete("/games/{code}/players/{name}")
@@ -260,7 +312,7 @@ async def ws_game(websocket: WebSocket, code: str):
 
     await ws_manager.connect(code, websocket)
     try:
-        await websocket.send_json(_serialize_game(game))
+        await websocket.send_text(_render_scoreboard(_serialize_game(game)))
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

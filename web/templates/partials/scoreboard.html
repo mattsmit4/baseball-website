@@ -1,0 +1,101 @@
+<div id="scoreboard" hx-swap-oob="outerHTML">
+  <header class="mb-4 flex justify-between items-baseline">
+    <a href="/" class="text-sm text-slate-500 hover:underline">&larr; home</a>
+    <span class="font-mono text-2xl font-bold tracking-widest">{{ game.code }}</span>
+  </header>
+
+  {% if game.status == "setup" %}
+    <h2 class="text-lg font-semibold mb-3">Roster ({{ game.players | length }})</h2>
+
+    <form hx-post="/games/{{ game.code }}/players-form" hx-swap="none"
+          hx-on::after-request="if(event.detail.successful) this.reset()"
+          class="mb-5 space-y-3 p-4 bg-white rounded-lg border border-slate-200">
+      <input name="name" placeholder="Player name" required
+             class="w-full p-3 border border-slate-300 rounded-lg">
+      <div class="flex gap-2 text-sm">
+        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
+          <input type="radio" name="preference" value="IF" required> Infield
+        </label>
+        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
+          <input type="radio" name="preference" value="OF"> Outfield
+        </label>
+        <label class="flex-1 flex items-center gap-1 p-2 border rounded-lg cursor-pointer">
+          <input type="radio" name="preference" value="BOTH" checked> Both
+        </label>
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="never_pitch" value="on"> Never pitch
+      </label>
+      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">
+        Add player
+      </button>
+    </form>
+
+    {% if game.players %}
+      <ul class="space-y-1 mb-5">
+        {% for p in game.players %}
+          <li class="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-200">
+            <span class="font-medium">{{ p.name }}</span>
+            <span class="text-slate-500 text-sm">
+              {{ p.preference }}{% if p.never_pitch %} · no pitch{% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-slate-500 text-sm mb-5">No players yet. Add some above.</p>
+    {% endif %}
+
+    <form hx-post="/games/{{ game.code }}/start" hx-swap="none">
+      <button class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg text-lg font-semibold">
+        Start game
+      </button>
+    </form>
+
+  {% elif game.status == "in_progress" %}
+    {% set positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "LCF", "RCF", "RF"] %}
+    <h2 class="text-2xl font-bold mb-4">Inning {{ game.inning }}</h2>
+
+    <ul class="space-y-1 mb-5">
+      {% for pos in positions %}
+        {% set name = game.last_assignment.positions.get(pos) %}
+        <li class="flex items-center p-3 bg-white rounded-lg border border-slate-200">
+          <span class="font-mono text-sm text-slate-500 w-12 shrink-0">{{ pos }}</span>
+          <span class="flex-1 text-right font-medium">{{ name or "—" }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if game.last_assignment.bench %}
+      <div class="mb-5">
+        <h3 class="text-sm font-semibold text-slate-500 mb-2">Bench</h3>
+        <ul class="flex flex-wrap gap-2">
+          {% for name in game.last_assignment.bench %}
+            <li class="px-3 py-2 bg-slate-200 rounded-lg text-sm">{{ name }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="flex gap-2">
+      <form hx-post="/games/{{ game.code }}/next-inning" hx-swap="none" class="flex-1">
+        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
+          Next inning
+        </button>
+      </form>
+      <form hx-post="/games/{{ game.code }}/end" hx-swap="none">
+        <button class="bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-semibold"
+                hx-confirm="End the game?">
+          End
+        </button>
+      </form>
+    </div>
+
+  {% elif game.status == "ended" %}
+    <h2 class="text-2xl font-bold mb-3">Game ended</h2>
+    <p class="text-slate-600 mb-5">Final inning: {{ game.inning - 1 }}</p>
+    <a href="/" class="block text-center bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
+      New game
+    </a>
+  {% endif %}
+</div>
