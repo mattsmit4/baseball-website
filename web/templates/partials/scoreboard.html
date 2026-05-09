@@ -12,19 +12,21 @@
           class="mb-5 space-y-3 p-4 bg-white rounded-lg border border-slate-200">
       <input name="name" placeholder="Player name" required
              class="w-full p-3 border border-slate-300 rounded-lg">
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+      <div class="space-y-2 text-sm">
+        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
           <input type="radio" name="preference" value="PITCHER" required> Pitcher
         </label>
-        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-          <input type="radio" name="preference" value="IF"> Infield
-        </label>
-        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-          <input type="radio" name="preference" value="OF"> Outfield
-        </label>
-        <label class="flex items-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-          <input type="radio" name="preference" value="BOTH" checked> Both
-        </label>
+        <div class="grid grid-cols-3 gap-2">
+          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+            <input type="radio" name="preference" value="IF"> Infield
+          </label>
+          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+            <input type="radio" name="preference" value="OF"> Outfield
+          </label>
+          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+            <input type="radio" name="preference" value="BOTH" checked> Both
+          </label>
+        </div>
       </div>
       <label class="never-pitch flex items-center gap-2 text-sm">
         <input type="checkbox" name="never_pitch" value="on"> Never pitch
