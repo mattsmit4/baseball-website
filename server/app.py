@@ -1,7 +1,7 @@
 import copy
 from dataclasses import asdict
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
 from engine.models import GameState, Player, Position, Preference
@@ -9,9 +9,11 @@ from engine.rotation import assign_inning
 from engine.state import add_player as engine_add_player
 from engine.state import apply_assignment, unlock_position
 from server.store import Game, GameStore
+from server.ws import ConnectionManager
 
 app = FastAPI(title="Softball Rotation")
 store = GameStore()
+ws_manager = ConnectionManager()
 
 
 class AddPlayerRequest(BaseModel):
@@ -67,25 +69,29 @@ def _find_player(state: GameState, name: str) -> Player | None:
     return next((p for p in state.players if p.name == name), None)
 
 
-def _persist(code: str, new_state: GameState, **kwargs) -> Game:
+async def _persist_and_broadcast(
+    code: str, new_state: GameState, **kwargs
+) -> dict:
     updated = store.update(code, new_state, **kwargs)
     assert updated is not None
-    return updated
+    payload = _serialize_game(updated)
+    await ws_manager.broadcast(updated.code, payload)
+    return payload
 
 
 @app.post("/games", status_code=201)
-def create_game():
+async def create_game():
     game = store.create(GameState(players=[]))
     return _serialize_game(game)
 
 
 @app.get("/games/{code}")
-def get_game(code: str):
+async def get_game(code: str):
     return _serialize_game(_get_game_or_404(code))
 
 
 @app.post("/games/{code}/players", status_code=201)
-def add_player(code: str, body: AddPlayerRequest):
+async def add_player(code: str, body: AddPlayerRequest):
     game = _get_game_or_404(code)
     if game.status == "ended":
         raise HTTPException(status_code=409, detail="Game has ended")
@@ -104,11 +110,11 @@ def add_player(code: str, body: AddPlayerRequest):
     else:
         new_state = engine_add_player(game.state, new_player)
 
-    return _serialize_game(_persist(game.code, new_state))
+    return await _persist_and_broadcast(game.code, new_state)
 
 
 @app.delete("/games/{code}/players/{name}")
-def remove_player(code: str, name: str):
+async def remove_player(code: str, name: str):
     game = _get_game_or_404(code)
     if _find_player(game.state, name) is None:
         raise HTTPException(status_code=404, detail="Player not in roster")
@@ -117,11 +123,11 @@ def remove_player(code: str, name: str):
     new_state.players = [p for p in new_state.players if p.name != name]
     new_state.locks = {pos: n for pos, n in new_state.locks.items() if n != name}
 
-    return _serialize_game(_persist(game.code, new_state))
+    return await _persist_and_broadcast(game.code, new_state)
 
 
 @app.patch("/games/{code}/players/{name}")
-def edit_player(code: str, name: str, body: EditPlayerRequest):
+async def edit_player(code: str, name: str, body: EditPlayerRequest):
     game = _get_game_or_404(code)
     if _find_player(game.state, name) is None:
         raise HTTPException(status_code=404, detail="Player not in roster")
@@ -135,11 +141,11 @@ def edit_player(code: str, name: str, body: EditPlayerRequest):
                 player.never_pitch = body.never_pitch
             break
 
-    return _serialize_game(_persist(game.code, new_state))
+    return await _persist_and_broadcast(game.code, new_state)
 
 
 @app.put("/games/{code}/locks/{position}")
-def lock_position(code: str, position: Position, body: LockRequest):
+async def lock_position(code: str, position: Position, body: LockRequest):
     game = _get_game_or_404(code)
     if _find_player(game.state, body.player_name) is None:
         raise HTTPException(status_code=404, detail="Player not in roster")
@@ -150,33 +156,33 @@ def lock_position(code: str, position: Position, body: LockRequest):
     }
     new_state.locks[position] = body.player_name
 
-    return _serialize_game(_persist(game.code, new_state))
+    return await _persist_and_broadcast(game.code, new_state)
 
 
 @app.delete("/games/{code}/locks/{position}")
-def unlock(code: str, position: Position):
+async def unlock(code: str, position: Position):
     game = _get_game_or_404(code)
     if position not in game.state.locks:
         raise HTTPException(status_code=404, detail="Position not locked")
 
     new_state = unlock_position(game.state, position)
-    return _serialize_game(_persist(game.code, new_state))
+    return await _persist_and_broadcast(game.code, new_state)
 
 
 @app.post("/games/{code}/start")
-def start_game(code: str):
+async def start_game(code: str):
     game = _get_game_or_404(code)
     if game.status != "setup":
         raise HTTPException(status_code=409, detail="Game already started")
 
     assignment = assign_inning(game.state)
-    return _serialize_game(
-        _persist(game.code, game.state, status="in_progress", last_assignment=assignment)
+    return await _persist_and_broadcast(
+        game.code, game.state, status="in_progress", last_assignment=assignment
     )
 
 
 @app.post("/games/{code}/next-inning")
-def next_inning(code: str):
+async def next_inning(code: str):
     game = _get_game_or_404(code)
     if game.status != "in_progress":
         raise HTTPException(status_code=409, detail="Game is not in progress")
@@ -185,22 +191,22 @@ def next_inning(code: str):
 
     new_state = apply_assignment(game.state, game.last_assignment)
     next_assignment = assign_inning(new_state)
-    return _serialize_game(
-        _persist(game.code, new_state, last_assignment=next_assignment)
+    return await _persist_and_broadcast(
+        game.code, new_state, last_assignment=next_assignment
     )
 
 
 @app.post("/games/{code}/end")
-def end_game(code: str):
+async def end_game(code: str):
     game = _get_game_or_404(code)
     if game.status == "ended":
         raise HTTPException(status_code=409, detail="Game already ended")
 
-    return _serialize_game(_persist(game.code, game.state, status="ended"))
+    return await _persist_and_broadcast(game.code, game.state, status="ended")
 
 
 @app.post("/games/{code}/swap")
-def swap(code: str, body: SwapRequest):
+async def swap(code: str, body: SwapRequest):
     game = _get_game_or_404(code)
     if game.status != "in_progress":
         raise HTTPException(status_code=409, detail="Game is not in progress")
@@ -239,6 +245,25 @@ def swap(code: str, body: SwapRequest):
             bench.append(current_at_target)
 
     new_assignment.bench = bench
-    return _serialize_game(
-        _persist(game.code, game.state, last_assignment=new_assignment)
+    return await _persist_and_broadcast(
+        game.code, game.state, last_assignment=new_assignment
     )
+
+
+@app.websocket("/ws/{code}")
+async def ws_game(websocket: WebSocket, code: str):
+    code = code.upper()
+    game = store.get(code)
+    if game is None:
+        await websocket.close(code=4404)
+        return
+
+    await ws_manager.connect(code, websocket)
+    try:
+        await websocket.send_json(_serialize_game(game))
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await ws_manager.disconnect(code, websocket)
