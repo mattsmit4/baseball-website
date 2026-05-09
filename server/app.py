@@ -165,6 +165,41 @@ async def add_player_form(
     return Response(status_code=204)
 
 
+@app.post("/games/{code}/players/{name}/edit-form", status_code=204)
+async def edit_player_form(
+    code: str,
+    name: str,
+    preference: Preference = Form(...),
+    never_pitch: str | None = Form(None),
+):
+    await edit_player(
+        code,
+        name,
+        EditPlayerRequest(preference=preference, never_pitch=never_pitch == "on"),
+    )
+    return Response(status_code=204)
+
+
+@app.post("/games/{code}/locks-form/{position}", status_code=204)
+async def lock_position_form(
+    code: str,
+    position: Position,
+    player_name: str = Form(...),
+):
+    await lock_position(code, position, LockRequest(player_name=player_name))
+    return Response(status_code=204)
+
+
+@app.post("/games/{code}/swap-form", status_code=204)
+async def swap_form(
+    code: str,
+    position: Position = Form(...),
+    player_name: str = Form(...),
+):
+    await swap(code, SwapRequest(position=position, player_name=player_name))
+    return Response(status_code=204)
+
+
 @app.delete("/games/{code}/players/{name}")
 async def remove_player(code: str, name: str):
     game = _get_game_or_404(code)

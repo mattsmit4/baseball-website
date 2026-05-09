@@ -39,11 +39,49 @@
     {% if game.players %}
       <ul class="space-y-1 mb-5">
         {% for p in game.players %}
-          <li class="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-200">
-            <span class="font-medium">{{ p.name }}</span>
-            <span class="text-slate-500 text-sm">
-              {{ p.preference }}{% if p.never_pitch %} · no pitch{% endif %}
-            </span>
+          <li>
+            <details class="bg-white rounded-lg border border-slate-200">
+              <summary class="flex justify-between items-center p-3 cursor-pointer">
+                <span class="font-medium">{{ p.name }}</span>
+                <span class="flex items-center gap-2 text-slate-500 text-sm">
+                  <span>{{ p.preference }}{% if p.never_pitch %} &middot; no pitch{% endif %}</span>
+                  <span class="chevron text-slate-300">&rsaquo;</span>
+                </span>
+              </summary>
+              <div class="border-t border-slate-200 p-3 space-y-3">
+                <form hx-post="/games/{{ game.code }}/players/{{ p.name }}/edit-form" hx-swap="none"
+                      class="space-y-2">
+                  <div class="space-y-2 text-sm">
+                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                      <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                        <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
+                      </label>
+                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                        <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
+                      </label>
+                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                        <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
+                      </label>
+                    </div>
+                  </div>
+                  <label class="never-pitch flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="never_pitch" value="on" {% if p.never_pitch %}checked{% endif %}> Never pitch
+                  </label>
+                  <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+                    Save
+                  </button>
+                </form>
+                <button hx-delete="/games/{{ game.code }}/players/{{ p.name }}"
+                        hx-swap="none"
+                        hx-confirm="Remove {{ p.name }} from the roster?"
+                        class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
+                  Remove player
+                </button>
+              </div>
+            </details>
           </li>
         {% endfor %}
       </ul>
@@ -63,10 +101,52 @@
 
     <ul class="space-y-1 mb-5">
       {% for pos in positions %}
-        {% set name = game.last_assignment.positions.get(pos) %}
-        <li class="flex items-center p-3 bg-white rounded-lg border border-slate-200">
-          <span class="font-mono text-sm text-slate-500 w-12 shrink-0">{{ pos }}</span>
-          <span class="flex-1 text-right font-medium">{{ name or "—" }}</span>
+        {% set is_locked = pos in game.locks %}
+        {% set name = game.locks[pos] if is_locked else game.last_assignment.positions.get(pos) %}
+        <li>
+          <details class="bg-white rounded-lg border {% if is_locked %}border-amber-300{% else %}border-slate-200{% endif %}">
+            <summary class="flex items-center p-3 cursor-pointer">
+              <span class="font-mono text-sm text-slate-500 w-12 shrink-0">{{ pos }}</span>
+              {% if is_locked %}
+                <span class="text-xs uppercase tracking-wide text-amber-600 font-semibold mr-2">Locked</span>
+              {% endif %}
+              <span class="flex-1 text-right font-medium {% if not name %}text-slate-400{% endif %}">{% if name %}{{ name }}{% else %}&mdash;{% endif %}</span>
+              <span class="chevron text-slate-300 ml-2">&rsaquo;</span>
+            </summary>
+            <div class="border-t {% if is_locked %}border-amber-200{% else %}border-slate-200{% endif %} p-3 space-y-2">
+              {% if is_locked %}
+                <form hx-delete="/games/{{ game.code }}/locks/{{ pos }}" hx-swap="none">
+                  <button class="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-sm font-semibold">
+                    Unlock
+                  </button>
+                </form>
+              {% else %}
+                {% if name %}
+                  <form hx-post="/games/{{ game.code }}/locks-form/{{ pos }}" hx-swap="none">
+                    <input type="hidden" name="player_name" value="{{ name }}">
+                    <button class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
+                      Lock {{ name }} here
+                    </button>
+                  </form>
+                {% endif %}
+                <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
+                  <input type="hidden" name="position" value="{{ pos }}">
+                  <select name="player_name" required
+                          class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                    <option value="" disabled selected>Swap with&hellip;</option>
+                    {% for p in game.players %}
+                      {% if p.name != name and p.name not in game.locks.values() %}
+                        <option value="{{ p.name }}">{{ p.name }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                  <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                    Go
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </details>
         </li>
       {% endfor %}
     </ul>
@@ -74,9 +154,69 @@
     {% if game.last_assignment.bench %}
       <div class="mb-5">
         <h3 class="text-sm font-semibold text-slate-500 mb-2">Bench</h3>
-        <ul class="flex flex-wrap gap-2">
-          {% for name in game.last_assignment.bench %}
-            <li class="px-3 py-2 bg-slate-200 rounded-lg text-sm">{{ name }}</li>
+        <ul class="space-y-1">
+          {% for bname in game.last_assignment.bench %}
+            {% set p = (game.players | selectattr('name', 'equalto', bname) | list | first) %}
+            <li>
+              <details class="bg-slate-100 rounded-lg border border-slate-200">
+                <summary class="flex justify-between items-center p-3 cursor-pointer">
+                  <span class="font-medium">{{ bname }}</span>
+                  <span class="flex items-center gap-2 text-slate-500 text-sm">
+                    <span>{{ p.preference }}{% if p.never_pitch %} &middot; no pitch{% endif %}</span>
+                    <span class="chevron text-slate-300">&rsaquo;</span>
+                  </span>
+                </summary>
+                <div class="border-t border-slate-200 p-3 space-y-3 bg-white rounded-b-lg">
+                  <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
+                    <input type="hidden" name="player_name" value="{{ bname }}">
+                    <select name="position" required
+                            class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                      <option value="" disabled selected>Move to&hellip;</option>
+                      {% for pos in positions %}
+                        {% if pos not in game.locks %}
+                          {% set occupant = game.last_assignment.positions.get(pos) %}
+                          <option value="{{ pos }}">{{ pos }}{% if occupant %} (currently {{ occupant }}){% endif %}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                      Go
+                    </button>
+                  </form>
+                  <form hx-post="/games/{{ game.code }}/players/{{ bname }}/edit-form" hx-swap="none"
+                        class="space-y-2">
+                    <div class="space-y-2 text-sm">
+                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                        <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
+                      </label>
+                      <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                          <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
+                        </label>
+                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                          <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
+                        </label>
+                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                          <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
+                        </label>
+                      </div>
+                    </div>
+                    <label class="never-pitch flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="never_pitch" value="on" {% if p.never_pitch %}checked{% endif %}> Never pitch
+                    </label>
+                    <button class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 rounded-lg text-sm font-semibold">
+                      Save preference
+                    </button>
+                  </form>
+                  <button hx-delete="/games/{{ game.code }}/players/{{ bname }}"
+                          hx-swap="none"
+                          hx-confirm="Remove {{ bname }} from the game?"
+                          class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
+                    Remove player
+                  </button>
+                </div>
+              </details>
+            </li>
           {% endfor %}
         </ul>
       </div>

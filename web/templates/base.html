@@ -11,6 +11,10 @@
     form:has(input[name="preference"][value="PITCHER"]:checked) .never-pitch {
       display: none;
     }
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .chevron { display: inline-block; transition: transform 0.15s ease; }
+    details[open] > summary .chevron { transform: rotate(90deg); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
