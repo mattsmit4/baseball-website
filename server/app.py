@@ -3,6 +3,7 @@ from dataclasses import asdict
 
 from fastapi import FastAPI, Form, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
@@ -14,6 +15,7 @@ from server.store import Game, GameStore
 from server.ws import ConnectionManager
 
 app = FastAPI(title="Softball Team Tracker")
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
 store = GameStore()
 ws_manager = ConnectionManager()
 templates = Jinja2Templates(directory="web/templates")

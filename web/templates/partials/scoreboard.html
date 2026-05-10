@@ -380,6 +380,7 @@
     <div class="flex gap-2">
       <form hx-post="/games/{{ game.code }}/next-inning" hx-swap="none" class="flex-1">
         <button {% if game.inning >= 25 %}disabled{% endif %}
+                onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed">
           {% if game.inning >= 25 %}Max innings reached{% else %}Next inning{% endif %}
         </button>
