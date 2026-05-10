@@ -14,10 +14,10 @@ def _create(client) -> str:
     return client.post("/games").json()["code"]
 
 
-def _add(client, code: str, name: str, preference: str = "BOTH", never_pitch: bool = False):
+def _add(client, code: str, name: str, preference: str = "BOTH"):
     return client.post(
         f"/games/{code}/players",
-        json={"name": name, "preference": preference, "never_pitch": never_pitch},
+        json={"name": name, "preference": preference},
     )
 
 
@@ -51,13 +51,12 @@ def test_get_game_missing_code_returns_404(client):
 
 def test_add_player_appends_to_roster(client):
     code = _create(client)
-    response = _add(client, code, "Jason", "IF", True)
+    response = _add(client, code, "Jason", "IF")
     assert response.status_code == 201
     body = response.json()
     assert len(body["players"]) == 1
     assert body["players"][0]["name"] == "Jason"
     assert body["players"][0]["preference"] == "IF"
-    assert body["players"][0]["never_pitch"] is True
 
 
 def test_add_player_rejects_duplicate_name(client):
@@ -114,18 +113,17 @@ def test_remove_player_not_in_roster_returns_404(client):
     assert response.status_code == 404
 
 
-def test_edit_player_updates_preference_and_never_pitch(client):
+def test_edit_player_updates_preference(client):
     code = _create(client)
-    _add(client, code, "Jason", "IF", False)
+    _add(client, code, "Jason", "IF")
 
     response = client.patch(
         f"/games/{code}/players/Jason",
-        json={"preference": "BOTH", "never_pitch": True},
+        json={"preference": "BOTH"},
     )
     assert response.status_code == 200
     player = response.json()["players"][0]
     assert player["preference"] == "BOTH"
-    assert player["never_pitch"] is True
 
 
 def test_lock_position_assigns_player(client):

@@ -26,7 +26,6 @@ class Position(str, Enum):
 class Player:
     name: str
     preference: Preference
-    never_pitch: bool = False
     innings_played: int = 0
     innings_sat: int = 0
     current_play_streak: int = 0
@@ -37,7 +36,12 @@ class Player:
 class GameState:
     players: list[Player]
     locks: dict[Position, str] = field(default_factory=dict)
+    bench_locks: list[str] = field(default_factory=list)
     inning: int = 1
+    team_score: int = 0
+    opponent_score: int = 0
+    team_name: str = "Us"
+    games_played: int = 1
 
 
 @dataclass

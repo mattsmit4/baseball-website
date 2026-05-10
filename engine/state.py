@@ -25,6 +25,37 @@ def add_player(state: GameState, new_player: Player) -> GameState:
     return new_state
 
 
+def unlock_bench(state: GameState, name: str) -> GameState:
+    """Remove a bench lock and reset that player's innings_played /
+    innings_sat to the rotation pool average, so they don't get over-played
+    catching up after sitting out."""
+    new_state = copy.deepcopy(state)
+    if name not in new_state.bench_locks:
+        return new_state
+
+    new_state.bench_locks = [n for n in new_state.bench_locks if n != name]
+    locked_names = set(new_state.locks.values()) | set(new_state.bench_locks)
+    pool = [
+        p for p in new_state.players
+        if p.name not in locked_names and p.name != name
+    ]
+
+    if pool:
+        avg_played = round(sum(p.innings_played for p in pool) / len(pool))
+        avg_sat = round(sum(p.innings_sat for p in pool) / len(pool))
+    else:
+        avg_played = 0
+        avg_sat = 0
+
+    for player in new_state.players:
+        if player.name == name:
+            player.innings_played = avg_played
+            player.innings_sat = avg_sat
+            break
+
+    return new_state
+
+
 def unlock_position(state: GameState, position: Position) -> GameState:
     """Remove a position lock and reset the unlocked player's innings_played /
     innings_sat to the rotation pool average, so they don't get over-benched

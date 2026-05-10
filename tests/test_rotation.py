@@ -24,20 +24,6 @@ def test_single_both_player_is_assigned_to_a_position():
     assert "Alice" not in assignment.bench
 
 
-def test_never_pitch_player_is_not_assigned_to_pitcher():
-    """A player with never_pitch=True is never placed at the pitcher slot."""
-    state = GameState(
-        players=[
-            Player(name="NoPitcher", preference=Preference.BOTH, never_pitch=True),
-            Player(name="Bothy", preference=Preference.BOTH),
-        ]
-    )
-
-    assignment = assign_inning(state)
-
-    assert assignment.positions[Position.PITCHER] != "NoPitcher"
-
-
 def test_outfield_only_player_never_assigned_to_infield():
     """A player with OUTFIELD preference is never placed at an infield position.
     Pitcher is preference-agnostic so it's allowed."""

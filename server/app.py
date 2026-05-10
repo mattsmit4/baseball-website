@@ -4,12 +4,12 @@ from dataclasses import asdict
 from fastapi import FastAPI, Form, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from engine.models import GameState, Player, Position, Preference
 from engine.rotation import assign_inning
 from engine.state import add_player as engine_add_player
-from engine.state import apply_assignment, unlock_position
+from engine.state import apply_assignment, unlock_bench, unlock_position
 from server.store import Game, GameStore
 from server.ws import ConnectionManager
 
@@ -18,16 +18,38 @@ store = GameStore()
 ws_manager = ConnectionManager()
 templates = Jinja2Templates(directory="web/templates")
 
+PREFERENCE_LABELS = {
+    "PITCHER": "Pitcher",
+    "IF": "Infield",
+    "OF": "Outfield",
+    "BOTH": "Both",
+}
+templates.env.filters["pref_label"] = lambda p: PREFERENCE_LABELS.get(
+    getattr(p, "value", str(p)), str(p)
+)
+
+
+def _ordinal(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
+templates.env.filters["ordinal"] = _ordinal
+
+
+MAX_NAME_LENGTH = 16
+
 
 class AddPlayerRequest(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=MAX_NAME_LENGTH)
     preference: Preference
-    never_pitch: bool = False
 
 
 class EditPlayerRequest(BaseModel):
     preference: Preference | None = None
-    never_pitch: bool | None = None
 
 
 class LockRequest(BaseModel):
@@ -44,8 +66,13 @@ def _serialize_game(game: Game) -> dict:
         "code": game.code,
         "status": game.status,
         "inning": game.state.inning,
+        "team_score": game.state.team_score,
+        "opponent_score": game.state.opponent_score,
+        "team_name": game.state.team_name,
+        "games_played": game.state.games_played,
         "players": [asdict(p) for p in game.state.players],
         "locks": {pos.value: name for pos, name in game.state.locks.items()},
+        "bench_locks": list(game.state.bench_locks),
         "last_assignment": (
             {
                 "inning": game.last_assignment.inning,
@@ -87,13 +114,21 @@ async def _persist_and_broadcast(
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse(request, "index.html")
+async def index(request: Request, error: str | None = None):
+    return templates.TemplateResponse(request, "index.html", {"error": error})
 
 
 @app.post("/games/new")
-async def create_game_form():
-    game = store.create(GameState(players=[]))
+async def create_game_form(team_name: str = Form(...)):
+    cleaned = team_name.strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Team name is required")
+    if len(cleaned) > MAX_NAME_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Team name must be at most {MAX_NAME_LENGTH} characters",
+        )
+    game = store.create(GameState(players=[], team_name=cleaned))
     return RedirectResponse(url=f"/games/{game.code}", status_code=303)
 
 
@@ -135,15 +170,20 @@ async def add_player(code: str, body: AddPlayerRequest):
     new_player = Player(
         name=body.name,
         preference=body.preference,
-        never_pitch=body.never_pitch,
     )
 
     if game.status == "setup":
         new_state = copy.deepcopy(game.state)
         new_state.players.append(new_player)
-    else:
-        new_state = engine_add_player(game.state, new_player)
+        return await _persist_and_broadcast(game.code, new_state)
 
+    new_state = engine_add_player(game.state, new_player)
+    if game.last_assignment is not None:
+        new_assignment = copy.deepcopy(game.last_assignment)
+        new_assignment.bench.append(new_player.name)
+        return await _persist_and_broadcast(
+            game.code, new_state, last_assignment=new_assignment
+        )
     return await _persist_and_broadcast(game.code, new_state)
 
 
@@ -152,15 +192,18 @@ async def add_player_form(
     code: str,
     name: str = Form(...),
     preference: Preference = Form(...),
-    never_pitch: str | None = Form(None),
 ):
+    cleaned = name.strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Name is required")
+    if len(cleaned) > MAX_NAME_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Name must be at most {MAX_NAME_LENGTH} characters",
+        )
     await add_player(
         code,
-        AddPlayerRequest(
-            name=name,
-            preference=preference,
-            never_pitch=never_pitch == "on",
-        ),
+        AddPlayerRequest(name=cleaned, preference=preference),
     )
     return Response(status_code=204)
 
@@ -170,13 +213,8 @@ async def edit_player_form(
     code: str,
     name: str,
     preference: Preference = Form(...),
-    never_pitch: str | None = Form(None),
 ):
-    await edit_player(
-        code,
-        name,
-        EditPlayerRequest(preference=preference, never_pitch=never_pitch == "on"),
-    )
+    await edit_player(code, name, EditPlayerRequest(preference=preference))
     return Response(status_code=204)
 
 
@@ -187,6 +225,26 @@ async def lock_position_form(
     player_name: str = Form(...),
 ):
     await lock_position(code, position, LockRequest(player_name=player_name))
+    return Response(status_code=204)
+
+
+@app.post("/games/{code}/score-form", status_code=204)
+async def score_form(
+    code: str,
+    side: str = Form(...),
+    delta: int = Form(...),
+):
+    game = _get_game_or_404(code)
+    if side not in ("us", "them"):
+        raise HTTPException(status_code=400, detail="Invalid side")
+
+    new_state = copy.deepcopy(game.state)
+    if side == "us":
+        new_state.team_score = max(0, new_state.team_score + delta)
+    else:
+        new_state.opponent_score = max(0, new_state.opponent_score + delta)
+
+    await _persist_and_broadcast(game.code, new_state)
     return Response(status_code=204)
 
 
@@ -209,8 +267,19 @@ async def remove_player(code: str, name: str):
     new_state = copy.deepcopy(game.state)
     new_state.players = [p for p in new_state.players if p.name != name]
     new_state.locks = {pos: n for pos, n in new_state.locks.items() if n != name}
+    new_state.bench_locks = [n for n in new_state.bench_locks if n != name]
 
-    return await _persist_and_broadcast(game.code, new_state)
+    kwargs: dict = {}
+    if game.last_assignment is not None:
+        new_assignment = copy.deepcopy(game.last_assignment)
+        new_assignment.positions = {
+            pos: (None if n == name else n)
+            for pos, n in new_assignment.positions.items()
+        }
+        new_assignment.bench = [n for n in new_assignment.bench if n != name]
+        kwargs["last_assignment"] = new_assignment
+
+    return await _persist_and_broadcast(game.code, new_state, **kwargs)
 
 
 @app.patch("/games/{code}/players/{name}")
@@ -224,8 +293,6 @@ async def edit_player(code: str, name: str, body: EditPlayerRequest):
         if player.name == name:
             if body.preference is not None:
                 player.preference = body.preference
-            if body.never_pitch is not None:
-                player.never_pitch = body.never_pitch
             break
 
     return await _persist_and_broadcast(game.code, new_state)
@@ -242,8 +309,27 @@ async def lock_position(code: str, position: Position, body: LockRequest):
         pos: name for pos, name in new_state.locks.items() if name != body.player_name
     }
     new_state.locks[position] = body.player_name
+    new_state.bench_locks = [
+        n for n in new_state.bench_locks if n != body.player_name
+    ]
 
-    return await _persist_and_broadcast(game.code, new_state)
+    kwargs: dict = {}
+    if game.last_assignment is not None:
+        new_assignment = copy.deepcopy(game.last_assignment)
+        displaced = new_assignment.positions.get(position)
+        new_assignment.positions = {
+            pos: (None if n == body.player_name else n)
+            for pos, n in new_assignment.positions.items()
+        }
+        new_assignment.bench = [
+            n for n in new_assignment.bench if n != body.player_name
+        ]
+        new_assignment.positions[position] = body.player_name
+        if displaced and displaced != body.player_name:
+            new_assignment.bench.append(displaced)
+        kwargs["last_assignment"] = new_assignment
+
+    return await _persist_and_broadcast(game.code, new_state, **kwargs)
 
 
 @app.delete("/games/{code}/locks/{position}")
@@ -253,6 +339,44 @@ async def unlock(code: str, position: Position):
         raise HTTPException(status_code=404, detail="Position not locked")
 
     new_state = unlock_position(game.state, position)
+    return await _persist_and_broadcast(game.code, new_state)
+
+
+@app.post("/games/{code}/bench-locks-form", status_code=204)
+async def bench_lock_form(code: str, player_name: str = Form(...)):
+    game = _get_game_or_404(code)
+    if _find_player(game.state, player_name) is None:
+        raise HTTPException(status_code=404, detail="Player not in roster")
+
+    new_state = copy.deepcopy(game.state)
+    if player_name not in new_state.bench_locks:
+        new_state.bench_locks.append(player_name)
+    new_state.locks = {
+        pos: n for pos, n in new_state.locks.items() if n != player_name
+    }
+
+    kwargs: dict = {}
+    if game.last_assignment is not None:
+        new_assignment = copy.deepcopy(game.last_assignment)
+        new_assignment.positions = {
+            pos: (None if n == player_name else n)
+            for pos, n in new_assignment.positions.items()
+        }
+        if player_name not in new_assignment.bench:
+            new_assignment.bench.append(player_name)
+        kwargs["last_assignment"] = new_assignment
+
+    await _persist_and_broadcast(game.code, new_state, **kwargs)
+    return Response(status_code=204)
+
+
+@app.delete("/games/{code}/bench-locks/{name}")
+async def unlock_bench_endpoint(code: str, name: str):
+    game = _get_game_or_404(code)
+    if name not in game.state.bench_locks:
+        raise HTTPException(status_code=404, detail="Player not bench-locked")
+
+    new_state = unlock_bench(game.state, name)
     return await _persist_and_broadcast(game.code, new_state)
 
 
@@ -290,6 +414,36 @@ async def end_game(code: str):
         raise HTTPException(status_code=409, detail="Game already ended")
 
     return await _persist_and_broadcast(game.code, game.state, status="ended")
+
+
+@app.post("/games/{code}/next-game")
+async def next_game(code: str):
+    game = _get_game_or_404(code)
+    if game.status != "ended":
+        raise HTTPException(
+            status_code=409,
+            detail="Current game is not ended",
+        )
+
+    new_state = copy.deepcopy(game.state)
+    new_state.inning = 1
+    new_state.team_score = 0
+    new_state.opponent_score = 0
+    new_state.locks = {}
+    new_state.bench_locks = []
+    new_state.games_played += 1
+    for player in new_state.players:
+        player.innings_played = 0
+        player.innings_sat = 0
+        player.current_play_streak = 0
+        player.last_inning_at = {}
+
+    return await _persist_and_broadcast(
+        game.code,
+        new_state,
+        status="setup",
+        last_assignment=None,
+    )
 
 
 @app.post("/games/{code}/swap")

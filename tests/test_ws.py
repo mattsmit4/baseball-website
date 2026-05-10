@@ -89,4 +89,4 @@ def test_ws_broadcasts_inning_advance(client):
         client.post(f"/games/{code}/next-inning")
         html = ws.receive_text()
 
-    assert "Inning 2" in html
+    assert "2nd Inning" in html

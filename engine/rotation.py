@@ -19,7 +19,7 @@ def _is_eligible(player: Player, position: Position) -> bool:
     if player.preference == Preference.PITCHER:
         return position == Position.PITCHER
     if position == Position.PITCHER:
-        return not player.never_pitch
+        return True
     if position in INFIELD_POSITIONS:
         return player.preference in (Preference.INFIELD, Preference.BOTH)
     if position in OUTFIELD_POSITIONS:
@@ -59,8 +59,12 @@ def _max_matching(
 
 def assign_inning(state: GameState) -> InningAssignment:
     locked_names = set(state.locks.values())
+    bench_locked = set(state.bench_locks)
     open_positions = [p for p in Position if p not in state.locks]
-    pool = [p for p in state.players if p.name not in locked_names]
+    pool = [
+        p for p in state.players
+        if p.name not in locked_names and p.name not in bench_locked
+    ]
 
     pitcher_assignment: Player | None = None
     if Position.PITCHER in open_positions:
@@ -112,5 +116,5 @@ def assign_inning(state: GameState) -> InningAssignment:
     return InningAssignment(
         inning=state.inning,
         positions=positions_filled,
-        bench=[p.name for p in bench],
+        bench=list(state.bench_locks) + [p.name for p in bench],
     )

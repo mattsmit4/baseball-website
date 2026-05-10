@@ -1,16 +1,44 @@
 <div id="scoreboard" hx-swap-oob="outerHTML">
-  <header class="mb-4 flex justify-between items-baseline">
-    <a href="/" class="text-sm text-slate-500 hover:underline">&larr; home</a>
-    <span class="font-mono text-2xl font-bold tracking-widest">{{ game.code }}</span>
-  </header>
+  {% if game.status == "setup" %}
+    <header class="mb-6 relative text-center">
+      <a href="/" class="absolute left-0 top-2 text-sm text-slate-500 hover:underline">&larr; home</a>
+      <button type="button"
+              onclick="
+                navigator.clipboard.writeText('{{ game.code }}');
+                const s = this.querySelector('.copy-status');
+                s.textContent = 'Copied!';
+                s.classList.add('text-green-600');
+                clearTimeout(window.__copyT);
+                window.__copyT = setTimeout(() => {
+                  s.textContent = 'tap code to copy';
+                  s.classList.remove('text-green-600');
+                }, 1500);
+              "
+              class="inline-block px-3 py-1 rounded-lg hover:bg-slate-100 active:bg-slate-200">
+        <span class="block font-mono text-4xl font-bold tracking-widest">{{ game.code }}</span>
+        <span class="copy-status block text-xs text-slate-500 mt-1">tap code to copy</span>
+      </button>
+    </header>
+  {% endif %}
 
   {% if game.status == "setup" %}
-    <h2 class="text-lg font-semibold mb-3">Roster ({{ game.players | length }})</h2>
+    <h2 class="text-lg font-semibold mb-3">
+      {% if game.games_played > 1 %}Game {{ game.games_played }} &middot; {% endif %}Roster ({{ game.players | length }})
+    </h2>
 
     <form hx-post="/games/{{ game.code }}/players-form" hx-swap="none"
-          hx-on::after-request="if(event.detail.successful) this.reset()"
+          hx-on::after-request="
+            if (event.detail.successful) { this.reset(); return; }
+            const nameInput = this.querySelector('input[name=name]');
+            const msg = event.detail.xhr.status === 409
+              ? 'That name is already in the game. Pick a unique one.'
+              : 'Could not add player (error ' + event.detail.xhr.status + ').';
+            nameInput.setCustomValidity(msg);
+            nameInput.reportValidity();
+          "
           class="mb-5 space-y-3 p-4 bg-white rounded-lg border border-slate-200">
-      <input name="name" placeholder="Player name" required
+      <input name="name" placeholder="Player name" required maxlength="16"
+             oninput="this.setCustomValidity('')"
              class="w-full p-3 border border-slate-300 rounded-lg">
       <div class="space-y-2 text-sm">
         <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
@@ -28,24 +56,22 @@
           </label>
         </div>
       </div>
-      <label class="never-pitch flex items-center gap-2 text-sm">
-        <input type="checkbox" name="never_pitch" value="on"> Never pitch
-      </label>
       <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">
         Add player
       </button>
     </form>
 
     {% if game.players %}
+      <p class="text-xs text-slate-500 mb-2 italic">Tap a player to edit or remove.</p>
       <ul class="space-y-1 mb-5">
         {% for p in game.players %}
           <li>
             <details class="bg-white rounded-lg border border-slate-200">
               <summary class="flex justify-between items-center p-3 cursor-pointer">
                 <span class="font-medium">{{ p.name }}</span>
-                <span class="flex items-center gap-2 text-slate-500 text-sm">
-                  <span>{{ p.preference }}{% if p.never_pitch %} &middot; no pitch{% endif %}</span>
-                  <span class="chevron text-slate-300">&rsaquo;</span>
+                <span class="flex items-center gap-2 text-sm">
+                  <span class="text-slate-600">{{ p.preference | pref_label }}</span>
+                  <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
                 </span>
               </summary>
               <div class="border-t border-slate-200 p-3 space-y-3">
@@ -67,16 +93,12 @@
                       </label>
                     </div>
                   </div>
-                  <label class="never-pitch flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="never_pitch" value="on" {% if p.never_pitch %}checked{% endif %}> Never pitch
-                  </label>
                   <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
                     Save
                   </button>
                 </form>
                 <button hx-delete="/games/{{ game.code }}/players/{{ p.name }}"
                         hx-swap="none"
-                        hx-confirm="Remove {{ p.name }} from the roster?"
                         class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
                   Remove player
                 </button>
@@ -86,18 +108,53 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="text-slate-500 text-sm mb-5">No players yet. Add some above.</p>
+      <p class="text-slate-500 text-sm mb-5">Add yourself first, then share the code with your team.</p>
     {% endif %}
 
-    <form hx-post="/games/{{ game.code }}/start" hx-swap="none">
-      <button class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg text-lg font-semibold">
-        Start game
-      </button>
-    </form>
+    <div class="h-24"></div>
+
+    <div class="fixed bottom-0 inset-x-0 bg-slate-50/95 backdrop-blur border-t border-slate-200 p-4">
+      <div class="max-w-md mx-auto">
+        <form hx-post="/games/{{ game.code }}/start" hx-swap="none">
+          <button class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg text-lg font-semibold">
+            Start game
+          </button>
+        </form>
+      </div>
+    </div>
 
   {% elif game.status == "in_progress" %}
     {% set positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "LCF", "RCF", "RF"] %}
-    <h2 class="text-2xl font-bold mb-4">Inning {{ game.inning }}</h2>
+
+    <div class="bg-slate-900 text-white rounded-xl p-4 mb-5 shadow-md">
+      <div class="text-center text-xl uppercase tracking-widest text-slate-300 mb-3">
+        {{ game.inning | ordinal }} Inning
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="text-center">
+          <div class="text-base uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
+          <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"us","delta":1}' hx-swap="none"
+                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 text-5xl font-bold tabular-nums transition-transform duration-100 active:scale-95">
+            {{ game.team_score }}
+          </button>
+          <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"us","delta":-1}' hx-swap="none"
+                  class="mt-1 text-xs text-slate-500 hover:text-slate-300 px-2 py-1">
+            &minus;1
+          </button>
+        </div>
+        <div class="text-center">
+          <div class="text-base uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
+          <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"them","delta":1}' hx-swap="none"
+                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 text-5xl font-bold tabular-nums transition-transform duration-100 active:scale-95">
+            {{ game.opponent_score }}
+          </button>
+          <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"them","delta":-1}' hx-swap="none"
+                  class="mt-1 text-xs text-slate-500 hover:text-slate-300 px-2 py-1">
+            &minus;1
+          </button>
+        </div>
+      </div>
+    </div>
 
     <ul class="space-y-1 mb-5">
       {% for pos in positions %}
@@ -111,7 +168,7 @@
                 <span class="text-xs uppercase tracking-wide text-amber-600 font-semibold mr-2">Locked</span>
               {% endif %}
               <span class="flex-1 text-right font-medium {% if not name %}text-slate-400{% endif %}">{% if name %}{{ name }}{% else %}&mdash;{% endif %}</span>
-              <span class="chevron text-slate-300 ml-2">&rsaquo;</span>
+              <span class="chevron text-slate-400 text-base font-semibold ml-2">&rsaquo;</span>
             </summary>
             <div class="border-t {% if is_locked %}border-amber-200{% else %}border-slate-200{% endif %} p-3 space-y-2">
               {% if is_locked %}
@@ -157,63 +214,50 @@
         <ul class="space-y-1">
           {% for bname in game.last_assignment.bench %}
             {% set p = (game.players | selectattr('name', 'equalto', bname) | list | first) %}
+            {% set is_bench_locked = bname in game.bench_locks %}
             <li>
-              <details class="bg-slate-100 rounded-lg border border-slate-200">
+              <details class="rounded-lg border {% if is_bench_locked %}bg-amber-50 border-amber-300{% else %}bg-slate-100 border-slate-200{% endif %}">
                 <summary class="flex justify-between items-center p-3 cursor-pointer">
                   <span class="font-medium">{{ bname }}</span>
                   <span class="flex items-center gap-2 text-slate-500 text-sm">
-                    <span>{{ p.preference }}{% if p.never_pitch %} &middot; no pitch{% endif %}</span>
-                    <span class="chevron text-slate-300">&rsaquo;</span>
+                    {% if is_bench_locked %}
+                      <span class="text-xs uppercase tracking-wide text-amber-600 font-semibold">Locked</span>
+                    {% endif %}
+                    <span>{{ p.preference | pref_label }}</span>
+                    <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
                   </span>
                 </summary>
-                <div class="border-t border-slate-200 p-3 space-y-3 bg-white rounded-b-lg">
-                  <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
-                    <input type="hidden" name="player_name" value="{{ bname }}">
-                    <select name="position" required
-                            class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
-                      <option value="" disabled selected>Move to&hellip;</option>
-                      {% for pos in positions %}
-                        {% if pos not in game.locks %}
-                          {% set occupant = game.last_assignment.positions.get(pos) %}
-                          <option value="{{ pos }}">{{ pos }}{% if occupant %} (currently {{ occupant }}){% endif %}</option>
-                        {% endif %}
-                      {% endfor %}
-                    </select>
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-                      Go
-                    </button>
-                  </form>
-                  <form hx-post="/games/{{ game.code }}/players/{{ bname }}/edit-form" hx-swap="none"
-                        class="space-y-2">
-                    <div class="space-y-2 text-sm">
-                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                        <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
-                      </label>
-                      <div class="grid grid-cols-3 gap-2">
-                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                          <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
-                        </label>
-                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                          <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
-                        </label>
-                        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                          <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
-                        </label>
-                      </div>
-                    </div>
-                    <label class="never-pitch flex items-center gap-2 text-sm">
-                      <input type="checkbox" name="never_pitch" value="on" {% if p.never_pitch %}checked{% endif %}> Never pitch
-                    </label>
-                    <button class="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 rounded-lg text-sm font-semibold">
-                      Save preference
-                    </button>
-                  </form>
-                  <button hx-delete="/games/{{ game.code }}/players/{{ bname }}"
-                          hx-swap="none"
-                          hx-confirm="Remove {{ bname }} from the game?"
-                          class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
-                    Remove player
-                  </button>
+                <div class="border-t {% if is_bench_locked %}border-amber-200{% else %}border-slate-200{% endif %} p-3 space-y-2 bg-white rounded-b-lg">
+                  {% if is_bench_locked %}
+                    <form hx-delete="/games/{{ game.code }}/bench-locks/{{ bname }}" hx-swap="none">
+                      <button class="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-sm font-semibold">
+                        Unlock from bench
+                      </button>
+                    </form>
+                  {% else %}
+                    <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
+                      <input type="hidden" name="player_name" value="{{ bname }}">
+                      <select name="position" required
+                              class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                        <option value="" disabled selected>Move to&hellip;</option>
+                        {% for pos in positions %}
+                          {% if pos not in game.locks %}
+                            {% set occupant = game.last_assignment.positions.get(pos) %}
+                            <option value="{{ pos }}">{{ pos }}{% if occupant %} (currently {{ occupant }}){% endif %}</option>
+                          {% endif %}
+                        {% endfor %}
+                      </select>
+                      <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                        Go
+                      </button>
+                    </form>
+                    <form hx-post="/games/{{ game.code }}/bench-locks-form" hx-swap="none">
+                      <input type="hidden" name="player_name" value="{{ bname }}">
+                      <button class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
+                        Lock to bench
+                      </button>
+                    </form>
+                  {% endif %}
                 </div>
               </details>
             </li>
@@ -222,25 +266,155 @@
       </div>
     {% endif %}
 
+    <details class="bg-white rounded-lg border border-slate-200 mb-3">
+      <summary class="flex justify-between items-center p-3 cursor-pointer">
+        <span class="font-medium">Add a player</span>
+        <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+      </summary>
+      <div class="border-t border-slate-200 p-3">
+        <form hx-post="/games/{{ game.code }}/players-form" hx-swap="none"
+              hx-on::after-request="
+            if (event.detail.successful) { this.reset(); return; }
+            const nameInput = this.querySelector('input[name=name]');
+            const msg = event.detail.xhr.status === 409
+              ? 'That name is already in the game. Pick a unique one.'
+              : 'Could not add player (error ' + event.detail.xhr.status + ').';
+            nameInput.setCustomValidity(msg);
+            nameInput.reportValidity();
+          "
+              class="space-y-3">
+          <input name="name" placeholder="Player name" required
+                 class="w-full p-3 border border-slate-300 rounded-lg">
+          <div class="space-y-2 text-sm">
+            <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+              <input type="radio" name="preference" value="PITCHER" required> Pitcher
+            </label>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                <input type="radio" name="preference" value="IF"> Infield
+              </label>
+              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                <input type="radio" name="preference" value="OF"> Outfield
+              </label>
+              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                <input type="radio" name="preference" value="BOTH" checked> Both
+              </label>
+            </div>
+          </div>
+          <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+            Add player
+          </button>
+        </form>
+      </div>
+    </details>
+
+    {% if game.players %}
+      <details class="bg-white rounded-lg border border-slate-200 mb-5">
+        <summary class="flex justify-between items-center p-3 cursor-pointer">
+          <span class="font-medium">Edit player</span>
+          <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+        </summary>
+        <div class="border-t border-slate-200 p-3 space-y-3">
+          <select id="manage-pick-{{ game.code }}"
+                  onchange="
+                    document.querySelectorAll('.manage-form-{{ game.code }}').forEach(f => f.classList.add('hidden'));
+                    if (this.value) document.getElementById('manage-form-{{ game.code }}-' + this.value).classList.remove('hidden');
+                  "
+                  class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+            <option value="" disabled selected>Select a player&hellip;</option>
+            {% for p in game.players %}
+              <option value="{{ loop.index }}">{{ p.name }} &mdash; {{ p.preference | pref_label }}</option>
+            {% endfor %}
+          </select>
+          {% for p in game.players %}
+            <div id="manage-form-{{ game.code }}-{{ loop.index }}"
+                 class="manage-form-{{ game.code }} hidden space-y-2">
+              <p class="text-xs text-slate-500">Editing <strong class="text-slate-700">{{ p.name }}</strong></p>
+              <form hx-post="/games/{{ game.code }}/players/{{ p.name }}/edit-form"
+                    hx-swap="none"
+                    class="space-y-2">
+                <div class="space-y-2 text-sm">
+                  <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                    <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
+                  </label>
+                  <div class="grid grid-cols-3 gap-2">
+                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                      <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
+                    </label>
+                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                      <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
+                    </label>
+                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                      <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
+                    </label>
+                  </div>
+                </div>
+                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+                  Save preference
+                </button>
+              </form>
+              <button hx-delete="/games/{{ game.code }}/players/{{ p.name }}"
+                      hx-swap="none"
+                      class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
+                Remove {{ p.name }} from the game
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      </details>
+    {% endif %}
+
     <div class="flex gap-2">
       <form hx-post="/games/{{ game.code }}/next-inning" hx-swap="none" class="flex-1">
         <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
           Next inning
         </button>
       </form>
-      <form hx-post="/games/{{ game.code }}/end" hx-swap="none">
-        <button class="bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-semibold"
-                hx-confirm="End the game?">
+      <details class="relative">
+        <summary class="bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-semibold cursor-pointer">
           End
-        </button>
-      </form>
+        </summary>
+        <div class="absolute right-0 bottom-full mb-2 bg-white rounded-lg border border-slate-200 shadow-lg p-3 w-60 z-10">
+          <p class="text-sm text-slate-700 mb-3">End the game now?</p>
+          <div class="flex gap-2">
+            <form hx-post="/games/{{ game.code }}/end" hx-swap="none" class="flex-1">
+              <button class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold">
+                Yes, end game
+              </button>
+            </form>
+            <button type="button" onclick="this.closest('details').open=false"
+                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-lg text-sm font-semibold">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </details>
     </div>
 
   {% elif game.status == "ended" %}
-    <h2 class="text-2xl font-bold mb-3">Game ended</h2>
-    <p class="text-slate-600 mb-5">Final inning: {{ game.inning - 1 }}</p>
-    <a href="/" class="block text-center bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
-      New game
+    <h2 class="text-2xl font-bold mb-3">Game {{ game.games_played }} ended</h2>
+    <div class="bg-slate-900 text-white rounded-xl p-4 mb-5 shadow-md">
+      <div class="text-center text-xl uppercase tracking-widest text-slate-300 mb-3">
+        Final &middot; {{ game.inning | ordinal }} Inning
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-center">
+        <div>
+          <div class="text-base uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
+          <div class="text-5xl font-bold tabular-nums">{{ game.team_score }}</div>
+        </div>
+        <div>
+          <div class="text-base uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
+          <div class="text-5xl font-bold tabular-nums">{{ game.opponent_score }}</div>
+        </div>
+      </div>
+    </div>
+    <form hx-post="/games/{{ game.code }}/next-game" hx-swap="none" class="mb-3">
+      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
+        Go to Game {{ game.games_played + 1 }}
+      </button>
+    </form>
+    <a href="/" class="block text-center bg-slate-200 hover:bg-slate-300 text-slate-700 py-4 rounded-lg text-lg font-semibold">
+      End for the day
     </a>
   {% endif %}
 </div>

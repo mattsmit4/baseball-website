@@ -11,6 +11,8 @@ GAME_CODE_LEN = 4
 GAME_CODE_ALPHABET = string.ascii_uppercase
 IDLE_TTL_SECONDS = 12 * 60 * 60
 
+_UNSET = object()
+
 
 @dataclass
 class Game:
@@ -61,8 +63,10 @@ class GameStore:
         code: str,
         state: GameState,
         status: str | None = None,
-        last_assignment: InningAssignment | None = None,
+        last_assignment=_UNSET,
     ) -> Game | None:
+        """Pass ``last_assignment=None`` to clear it; omit the kwarg to leave
+        it unchanged."""
         with self._lock:
             self._sweep_locked()
             game = self._games.get(code)
@@ -71,7 +75,7 @@ class GameStore:
             game.state = state
             if status is not None:
                 game.status = status
-            if last_assignment is not None:
+            if last_assignment is not _UNSET:
                 game.last_assignment = last_assignment
             game.last_touched_at = self._clock()
             return game
