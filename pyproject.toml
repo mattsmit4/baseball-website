@@ -1,7 +1,7 @@
 [project]
-name = "softball-rotation"
+name = "softball-team-tracker"
 version = "0.1.0"
-description = "Pickup softball defensive rotation web app"
+description = "Defensive rotation tracker for rec softball teams"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]

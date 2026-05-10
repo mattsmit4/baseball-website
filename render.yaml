@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: baseball-website
+    name: softball-team-tracker
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt

@@ -13,7 +13,7 @@ from engine.state import apply_assignment, unlock_bench, unlock_position
 from server.store import Game, GameStore
 from server.ws import ConnectionManager
 
-app = FastAPI(title="Softball Rotation")
+app = FastAPI(title="Softball Team Tracker")
 store = GameStore()
 ws_manager = ConnectionManager()
 templates = Jinja2Templates(directory="web/templates")
