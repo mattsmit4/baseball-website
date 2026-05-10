@@ -1,28 +1,28 @@
 <div id="scoreboard" hx-swap-oob="outerHTML">
   {% if game.status == "setup" %}
     <header class="mb-6 relative text-center">
-      <a href="/" class="absolute left-0 top-2 text-sm text-slate-500 hover:underline">&larr; home</a>
+      <a href="/" class="absolute left-0 top-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:underline">&larr; home</a>
       <button type="button"
               onclick="
                 navigator.clipboard.writeText('{{ game.code }}');
                 const s = this.querySelector('.copy-status');
                 s.textContent = 'Copied!';
-                s.classList.add('text-green-600');
+                s.classList.add('text-green-600', 'dark:text-green-400');
                 clearTimeout(window.__copyT);
                 window.__copyT = setTimeout(() => {
                   s.textContent = 'tap code to copy';
-                  s.classList.remove('text-green-600');
+                  s.classList.remove('text-green-600', 'dark:text-green-400');
                 }, 1500);
               "
-              class="inline-block px-3 py-1 rounded-lg hover:bg-slate-100 active:bg-slate-200">
-        <span class="block font-mono text-4xl font-bold tracking-widest">{{ game.code }}</span>
-        <span class="copy-status block text-xs text-slate-500 mt-1">tap code to copy</span>
+              class="inline-block px-3 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700">
+        <span class="block font-display text-5xl font-bold tracking-widest text-amber-600 dark:text-amber-300 dark:score-glow">{{ game.code }}</span>
+        <span class="copy-status block text-xs text-slate-500 dark:text-slate-400 mt-1">tap code to copy</span>
       </button>
     </header>
   {% endif %}
 
   {% if game.status == "setup" %}
-    <h2 class="text-lg font-semibold mb-3">
+    <h2 class="font-display text-xl uppercase tracking-wide text-slate-800 dark:text-slate-200 mb-3">
       {% if game.games_played > 1 %}Game {{ game.games_played }} &middot; {% endif %}Roster ({{ game.players | length }})
     </h2>
 
@@ -36,70 +36,70 @@
             nameInput.setCustomValidity(msg);
             nameInput.reportValidity();
           "
-          class="mb-5 space-y-3 p-4 bg-white rounded-lg border border-slate-200">
+          class="mb-5 space-y-3 p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
       <input name="name" placeholder="Player name" required maxlength="16"
              oninput="this.setCustomValidity('')"
-             class="w-full p-3 border border-slate-300 rounded-lg">
+             class="w-full p-3 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg focus:outline-none focus:border-amber-500 dark:focus:border-amber-400">
       <div class="space-y-2 text-sm">
-        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-          <input type="radio" name="preference" value="PITCHER" required> Pitcher
+        <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+          <input type="radio" name="preference" value="PITCHER" required class="accent-amber-500 dark:accent-amber-400"> Pitcher
         </label>
         <div class="grid grid-cols-3 gap-2">
-          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-            <input type="radio" name="preference" value="IF"> Infield
+          <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+            <input type="radio" name="preference" value="IF" class="accent-amber-500 dark:accent-amber-400"> Infield
           </label>
-          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-            <input type="radio" name="preference" value="OF"> Outfield
+          <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+            <input type="radio" name="preference" value="OF" class="accent-amber-500 dark:accent-amber-400"> Outfield
           </label>
-          <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-            <input type="radio" name="preference" value="BOTH" checked> Both
+          <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+            <input type="radio" name="preference" value="BOTH" checked class="accent-amber-500 dark:accent-amber-400"> Both
           </label>
         </div>
       </div>
-      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">
+      <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-3 rounded-lg font-bold uppercase tracking-wide font-display">
         Add player
       </button>
     </form>
 
     {% if game.players %}
-      <p class="text-xs text-slate-500 mb-2 italic">Tap a player to edit or remove.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-2 italic">Tap a player to edit or remove.</p>
       <ul class="space-y-1 mb-5">
         {% for p in game.players %}
           <li>
-            <details class="bg-white rounded-lg border border-slate-200">
+            <details class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
               <summary class="flex justify-between items-center p-3 cursor-pointer">
-                <span class="font-medium">{{ p.name }}</span>
+                <span class="font-medium text-slate-900 dark:text-slate-100">{{ p.name }}</span>
                 <span class="flex items-center gap-2 text-sm">
-                  <span class="text-slate-600">{{ p.preference | pref_label }}</span>
-                  <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+                  <span class="text-slate-500 dark:text-slate-400">{{ p.preference | pref_label }}</span>
+                  <span class="chevron text-slate-400 dark:text-slate-500 text-base font-semibold">&rsaquo;</span>
                 </span>
               </summary>
-              <div class="border-t border-slate-200 p-3 space-y-3">
+              <div class="border-t border-slate-200 dark:border-slate-700 p-3 space-y-3">
                 <form hx-post="/games/{{ game.code }}/players/{{ p.name }}/edit-form" hx-swap="none"
                       class="space-y-2">
                   <div class="space-y-2 text-sm">
-                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                      <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
+                    <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                      <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Pitcher
                     </label>
                     <div class="grid grid-cols-3 gap-2">
-                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                        <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
+                      <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                        <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Infield
                       </label>
-                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                        <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
+                      <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                        <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Outfield
                       </label>
-                      <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                        <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
+                      <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                        <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Both
                       </label>
                     </div>
                   </div>
-                  <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+                  <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
                     Save
                   </button>
                 </form>
                 <button hx-delete="/games/{{ game.code }}/players/{{ p.name }}"
                         hx-swap="none"
-                        class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
+                        class="w-full bg-red-50 dark:bg-red-500/15 hover:bg-red-100 dark:hover:bg-red-500/25 text-red-700 dark:text-red-300 py-2 rounded-lg text-sm font-semibold border border-red-200 dark:border-red-500/30">
                   Remove player
                 </button>
               </div>
@@ -108,15 +108,15 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="text-slate-500 text-sm mb-5">Add yourself first, then share the code with your team.</p>
+      <p class="text-slate-500 dark:text-slate-400 text-sm mb-5">Add yourself first, then share the code with your team.</p>
     {% endif %}
 
     <div class="h-24"></div>
 
-    <div class="fixed bottom-0 inset-x-0 bg-slate-50/95 backdrop-blur border-t border-slate-200 p-4">
+    <div class="fixed bottom-0 inset-x-0 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur border-t border-slate-200 dark:border-slate-800 p-4">
       <div class="max-w-md mx-auto">
         <form hx-post="/games/{{ game.code }}/start" hx-swap="none">
-          <button class="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg text-lg font-semibold">
+          <button class="w-full bg-green-500 hover:bg-green-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display">
             Start game
           </button>
         </form>
@@ -125,16 +125,18 @@
 
   {% elif game.status == "in_progress" %}
     {% set positions = ["P", "C", "1B", "2B", "3B", "SS", "LF", "LCF", "RCF", "RF"] %}
+    {% set infield = ["C", "1B", "2B", "3B", "SS"] %}
+    {% set outfield = ["LF", "LCF", "RCF", "RF"] %}
 
-    <div class="bg-slate-900 text-white rounded-xl p-4 mb-5 shadow-md">
-      <div class="text-center text-xl uppercase tracking-widest text-slate-300 mb-3">
+    <div class="score-tile bg-gradient-to-b from-slate-900 to-slate-950 text-white rounded-xl p-4 mb-5 shadow-lg shadow-amber-500/5 border border-slate-700/60">
+      <div class="text-center font-display text-2xl uppercase tracking-widest text-amber-300 score-glow mb-3">
         {{ game.inning | ordinal }} Inning
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div class="text-center">
-          <div class="text-base uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
+          <div class="font-display text-lg uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
           <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"us","delta":1}' hx-swap="none"
-                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 text-5xl font-bold tabular-nums transition-transform duration-100 active:scale-95">
+                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 font-display text-6xl font-bold tabular-nums text-amber-300 score-glow border border-slate-700/80 transition-transform duration-100 active:scale-95">
             {{ game.team_score }}
           </button>
           <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"us","delta":-1}' hx-swap="none"
@@ -143,9 +145,9 @@
           </button>
         </div>
         <div class="text-center">
-          <div class="text-base uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
+          <div class="font-display text-lg uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
           <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"them","delta":1}' hx-swap="none"
-                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 text-5xl font-bold tabular-nums transition-transform duration-100 active:scale-95">
+                  class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-lg py-3 font-display text-6xl font-bold tabular-nums text-amber-300 score-glow border border-slate-700/80 transition-transform duration-100 active:scale-95">
             {{ game.opponent_score }}
           </button>
           <button hx-post="/games/{{ game.code }}/score-form" hx-vals='{"side":"them","delta":-1}' hx-swap="none"
@@ -160,20 +162,30 @@
       {% for pos in positions %}
         {% set is_locked = pos in game.locks %}
         {% set name = game.locks[pos] if is_locked else game.last_assignment.positions.get(pos) %}
+        {% if pos == "P" %}
+          {% set dot_color = "bg-red-500 dark:bg-red-400" %}
+        {% elif pos in outfield %}
+          {% set dot_color = "bg-green-500 dark:bg-green-400" %}
+        {% else %}
+          {% set dot_color = "bg-amber-500 dark:bg-amber-400" %}
+        {% endif %}
         <li>
-          <details class="bg-white rounded-lg border {% if is_locked %}border-amber-300{% else %}border-slate-200{% endif %}">
+          <details class="bg-white dark:bg-slate-900 rounded-lg border {% if is_locked %}border-amber-400 dark:border-amber-500/60{% else %}border-slate-200 dark:border-slate-700{% endif %}">
             <summary class="flex items-center p-3 cursor-pointer">
-              <span class="font-mono text-sm text-slate-500 w-12 shrink-0">{{ pos }}</span>
+              <span class="flex items-center gap-2 w-14 shrink-0">
+                <span class="inline-block w-2 h-2 rounded-full {{ dot_color }}"></span>
+                <span class="font-mono text-sm text-slate-500 dark:text-slate-400">{{ pos }}</span>
+              </span>
               {% if is_locked %}
-                <span class="text-xs uppercase tracking-wide text-amber-600 font-semibold mr-2">Locked</span>
+                <span class="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold mr-2">Locked</span>
               {% endif %}
-              <span class="flex-1 text-right font-medium {% if not name %}text-slate-400{% endif %}">{% if name %}{{ name }}{% else %}&mdash;{% endif %}</span>
-              <span class="chevron text-slate-400 text-base font-semibold ml-2">&rsaquo;</span>
+              <span class="flex-1 text-right font-medium {% if name %}text-slate-900 dark:text-slate-100{% else %}text-slate-400 dark:text-slate-500{% endif %}">{% if name %}{{ name }}{% else %}&mdash;{% endif %}</span>
+              <span class="chevron text-slate-400 dark:text-slate-500 text-base font-semibold ml-2">&rsaquo;</span>
             </summary>
-            <div class="border-t {% if is_locked %}border-amber-200{% else %}border-slate-200{% endif %} p-3 space-y-2">
+            <div class="border-t {% if is_locked %}border-amber-200 dark:border-amber-500/40{% else %}border-slate-200 dark:border-slate-700{% endif %} p-3 space-y-2">
               {% if is_locked %}
                 <form hx-delete="/games/{{ game.code }}/locks/{{ pos }}" hx-swap="none">
-                  <button class="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-sm font-semibold">
+                  <button class="w-full bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 py-2 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40">
                     Unlock
                   </button>
                 </form>
@@ -181,7 +193,7 @@
                 {% if name %}
                   <form hx-post="/games/{{ game.code }}/locks-form/{{ pos }}" hx-swap="none">
                     <input type="hidden" name="player_name" value="{{ name }}">
-                    <button class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
+                    <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
                       Lock {{ name }} here
                     </button>
                   </form>
@@ -189,7 +201,7 @@
                 <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
                   <input type="hidden" name="position" value="{{ pos }}">
                   <select name="player_name" required
-                          class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                          class="flex-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
                     <option value="" disabled selected>Swap with&hellip;</option>
                     {% for p in game.players %}
                       {% if p.name != name and p.name not in game.locks.values() %}
@@ -197,7 +209,7 @@
                       {% endif %}
                     {% endfor %}
                   </select>
-                  <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                  <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
                     Go
                   </button>
                 </form>
@@ -210,27 +222,27 @@
 
     {% if game.last_assignment.bench %}
       <div class="mb-5">
-        <h3 class="text-sm font-semibold text-slate-500 mb-2">Bench</h3>
+        <h3 class="font-display text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Bench</h3>
         <ul class="space-y-1">
           {% for bname in game.last_assignment.bench %}
             {% set p = (game.players | selectattr('name', 'equalto', bname) | list | first) %}
             {% set is_bench_locked = bname in game.bench_locks %}
             <li>
-              <details class="rounded-lg border {% if is_bench_locked %}bg-amber-50 border-amber-300{% else %}bg-slate-100 border-slate-200{% endif %}">
+              <details class="rounded-lg border {% if is_bench_locked %}bg-amber-50 dark:bg-amber-500/10 border-amber-400 dark:border-amber-500/60{% else %}bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700{% endif %}">
                 <summary class="flex justify-between items-center p-3 cursor-pointer">
-                  <span class="font-medium">{{ bname }}</span>
-                  <span class="flex items-center gap-2 text-slate-500 text-sm">
+                  <span class="font-medium text-slate-900 dark:text-slate-100">{{ bname }}</span>
+                  <span class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
                     {% if is_bench_locked %}
-                      <span class="text-xs uppercase tracking-wide text-amber-600 font-semibold">Locked</span>
+                      <span class="text-xs uppercase tracking-wide text-amber-600 dark:text-amber-400 font-semibold">Locked</span>
                     {% endif %}
                     <span>{{ p.preference | pref_label }}</span>
-                    <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+                    <span class="chevron text-slate-400 dark:text-slate-500 text-base font-semibold">&rsaquo;</span>
                   </span>
                 </summary>
-                <div class="border-t {% if is_bench_locked %}border-amber-200{% else %}border-slate-200{% endif %} p-3 space-y-2 bg-white rounded-b-lg">
+                <div class="border-t {% if is_bench_locked %}border-amber-200 dark:border-amber-500/40{% else %}border-slate-200 dark:border-slate-700{% endif %} p-3 space-y-2 bg-white dark:bg-slate-900 rounded-b-lg">
                   {% if is_bench_locked %}
                     <form hx-delete="/games/{{ game.code }}/bench-locks/{{ bname }}" hx-swap="none">
-                      <button class="w-full bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-lg text-sm font-semibold">
+                      <button class="w-full bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 py-2 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40">
                         Unlock from bench
                       </button>
                     </form>
@@ -238,7 +250,7 @@
                     <form hx-post="/games/{{ game.code }}/swap-form" hx-swap="none" class="flex gap-2">
                       <input type="hidden" name="player_name" value="{{ bname }}">
                       <select name="position" required
-                              class="flex-1 p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                              class="flex-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
                         <option value="" disabled selected>Move to&hellip;</option>
                         {% for pos in positions %}
                           {% if pos not in game.locks %}
@@ -247,13 +259,13 @@
                           {% endif %}
                         {% endfor %}
                       </select>
-                      <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                      <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
                         Go
                       </button>
                     </form>
                     <form hx-post="/games/{{ game.code }}/bench-locks-form" hx-swap="none">
                       <input type="hidden" name="player_name" value="{{ bname }}">
-                      <button class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
+                      <button class="w-full bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 py-2 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40">
                         Lock to bench
                       </button>
                     </form>
@@ -266,12 +278,12 @@
       </div>
     {% endif %}
 
-    <details class="bg-white rounded-lg border border-slate-200 mb-3">
+    <details class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 mb-3">
       <summary class="flex justify-between items-center p-3 cursor-pointer">
-        <span class="font-medium">Add a player</span>
-        <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+        <span class="font-medium text-slate-900 dark:text-slate-100">Add a player</span>
+        <span class="chevron text-slate-400 dark:text-slate-500 text-base font-semibold">&rsaquo;</span>
       </summary>
-      <div class="border-t border-slate-200 p-3">
+      <div class="border-t border-slate-200 dark:border-slate-700 p-3">
         <form hx-post="/games/{{ game.code }}/players-form" hx-swap="none"
               hx-on::after-request="
             if (event.detail.successful) { this.reset(); return; }
@@ -283,25 +295,26 @@
             nameInput.reportValidity();
           "
               class="space-y-3">
-          <input name="name" placeholder="Player name" required
-                 class="w-full p-3 border border-slate-300 rounded-lg">
+          <input name="name" placeholder="Player name" required maxlength="16"
+                 oninput="this.setCustomValidity('')"
+                 class="w-full p-3 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-lg focus:outline-none focus:border-amber-500 dark:focus:border-amber-400">
           <div class="space-y-2 text-sm">
-            <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-              <input type="radio" name="preference" value="PITCHER" required> Pitcher
+            <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+              <input type="radio" name="preference" value="PITCHER" required class="accent-amber-500 dark:accent-amber-400"> Pitcher
             </label>
             <div class="grid grid-cols-3 gap-2">
-              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                <input type="radio" name="preference" value="IF"> Infield
+              <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                <input type="radio" name="preference" value="IF" class="accent-amber-500 dark:accent-amber-400"> Infield
               </label>
-              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                <input type="radio" name="preference" value="OF"> Outfield
+              <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                <input type="radio" name="preference" value="OF" class="accent-amber-500 dark:accent-amber-400"> Outfield
               </label>
-              <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                <input type="radio" name="preference" value="BOTH" checked> Both
+              <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                <input type="radio" name="preference" value="BOTH" checked class="accent-amber-500 dark:accent-amber-400"> Both
               </label>
             </div>
           </div>
-          <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+          <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
             Add player
           </button>
         </form>
@@ -309,18 +322,18 @@
     </details>
 
     {% if game.players %}
-      <details class="bg-white rounded-lg border border-slate-200 mb-5">
+      <details class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 mb-5">
         <summary class="flex justify-between items-center p-3 cursor-pointer">
-          <span class="font-medium">Edit player</span>
-          <span class="chevron text-slate-400 text-base font-semibold">&rsaquo;</span>
+          <span class="font-medium text-slate-900 dark:text-slate-100">Edit player</span>
+          <span class="chevron text-slate-400 dark:text-slate-500 text-base font-semibold">&rsaquo;</span>
         </summary>
-        <div class="border-t border-slate-200 p-3 space-y-3">
+        <div class="border-t border-slate-200 dark:border-slate-700 p-3 space-y-3">
           <select id="manage-pick-{{ game.code }}"
                   onchange="
                     document.querySelectorAll('.manage-form-{{ game.code }}').forEach(f => f.classList.add('hidden'));
                     if (this.value) document.getElementById('manage-form-{{ game.code }}-' + this.value).classList.remove('hidden');
                   "
-                  class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                  class="w-full p-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
             <option value="" disabled selected>Select a player&hellip;</option>
             {% for p in game.players %}
               <option value="{{ loop.index }}">{{ p.name }} &mdash; {{ p.preference | pref_label }}</option>
@@ -329,33 +342,33 @@
           {% for p in game.players %}
             <div id="manage-form-{{ game.code }}-{{ loop.index }}"
                  class="manage-form-{{ game.code }} hidden space-y-2">
-              <p class="text-xs text-slate-500">Editing <strong class="text-slate-700">{{ p.name }}</strong></p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Editing <strong class="text-slate-800 dark:text-slate-200">{{ p.name }}</strong></p>
               <form hx-post="/games/{{ game.code }}/players/{{ p.name }}/edit-form"
                     hx-swap="none"
                     class="space-y-2">
                 <div class="space-y-2 text-sm">
-                  <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                    <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %}> Pitcher
+                  <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                    <input type="radio" name="preference" value="PITCHER" {% if p.preference == "PITCHER" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Pitcher
                   </label>
                   <div class="grid grid-cols-3 gap-2">
-                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                      <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %}> Infield
+                    <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                      <input type="radio" name="preference" value="IF" {% if p.preference == "IF" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Infield
                     </label>
-                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                      <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %}> Outfield
+                    <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                      <input type="radio" name="preference" value="OF" {% if p.preference == "OF" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Outfield
                     </label>
-                    <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
-                      <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %}> Both
+                    <label class="flex items-center justify-center gap-1 p-2 border border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer text-slate-700 dark:text-slate-300 has-[:checked]:bg-amber-100 dark:has-[:checked]:bg-amber-500/15 has-[:checked]:border-amber-500 dark:has-[:checked]:border-amber-400 has-[:checked]:text-amber-800 dark:has-[:checked]:text-amber-200">
+                      <input type="radio" name="preference" value="BOTH" {% if p.preference == "BOTH" %}checked{% endif %} class="accent-amber-500 dark:accent-amber-400"> Both
                     </label>
                   </div>
                 </div>
-                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+                <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-2 rounded-lg text-sm font-bold uppercase tracking-wide font-display">
                   Save preference
                 </button>
               </form>
               <button hx-delete="/games/{{ game.code }}/players/{{ p.name }}"
                       hx-swap="none"
-                      class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg text-sm font-semibold">
+                      class="w-full bg-red-50 dark:bg-red-500/15 hover:bg-red-100 dark:hover:bg-red-500/25 text-red-700 dark:text-red-300 py-2 rounded-lg text-sm font-semibold border border-red-200 dark:border-red-500/30">
                 Remove {{ p.name }} from the game
               </button>
             </div>
@@ -366,24 +379,25 @@
 
     <div class="flex gap-2">
       <form hx-post="/games/{{ game.code }}/next-inning" hx-swap="none" class="flex-1">
-        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
-          Next inning
+        <button {% if game.inning >= 25 %}disabled{% endif %}
+                class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed">
+          {% if game.inning >= 25 %}Max innings reached{% else %}Next inning{% endif %}
         </button>
       </form>
       <details class="relative">
-        <summary class="bg-red-600 hover:bg-red-700 text-white py-4 px-4 rounded-lg font-semibold cursor-pointer">
+        <summary class="bg-red-600 hover:bg-red-500 text-white py-4 px-4 rounded-lg font-bold uppercase tracking-wide font-display cursor-pointer">
           End
         </summary>
-        <div class="absolute right-0 bottom-full mb-2 bg-white rounded-lg border border-slate-200 shadow-lg p-3 w-60 z-10">
-          <p class="text-sm text-slate-700 mb-3">End the game now?</p>
+        <div class="absolute right-0 bottom-full mb-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl p-3 w-60 z-10">
+          <p class="text-sm text-slate-700 dark:text-slate-200 mb-3">End the game now?</p>
           <div class="flex gap-2">
             <form hx-post="/games/{{ game.code }}/end" hx-swap="none" class="flex-1">
-              <button class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold">
+              <button class="w-full bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-semibold">
                 Yes, end game
               </button>
             </form>
             <button type="button" onclick="this.closest('details').open=false"
-                    class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 px-3 rounded-lg text-sm font-semibold">
+                    class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2 px-3 rounded-lg text-sm font-semibold">
               Cancel
             </button>
           </div>
@@ -392,28 +406,34 @@
     </div>
 
   {% elif game.status == "ended" %}
-    <h2 class="text-2xl font-bold mb-3">Game {{ game.games_played }} ended</h2>
-    <div class="bg-slate-900 text-white rounded-xl p-4 mb-5 shadow-md">
-      <div class="text-center text-xl uppercase tracking-widest text-slate-300 mb-3">
+    <h2 class="font-display text-3xl uppercase tracking-wide text-slate-900 dark:text-slate-100 mb-3">Game {{ game.games_played }} ended</h2>
+    <div class="score-tile bg-gradient-to-b from-slate-900 to-slate-950 text-white rounded-xl p-4 mb-5 shadow-lg shadow-amber-500/5 border border-slate-700/60">
+      <div class="text-center font-display text-2xl uppercase tracking-widest text-amber-300 score-glow mb-3">
         Final &middot; {{ game.inning | ordinal }} Inning
       </div>
       <div class="grid grid-cols-2 gap-3 text-center">
         <div>
-          <div class="text-base uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
-          <div class="text-5xl font-bold tabular-nums">{{ game.team_score }}</div>
+          <div class="font-display text-lg uppercase tracking-wide text-slate-300 mb-1 truncate">{{ game.team_name }}</div>
+          <div class="font-display text-6xl font-bold tabular-nums text-amber-300 score-glow">{{ game.team_score }}</div>
         </div>
         <div>
-          <div class="text-base uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
-          <div class="text-5xl font-bold tabular-nums">{{ game.opponent_score }}</div>
+          <div class="font-display text-lg uppercase tracking-wide text-slate-300 mb-1">Opponents</div>
+          <div class="font-display text-6xl font-bold tabular-nums text-amber-300 score-glow">{{ game.opponent_score }}</div>
         </div>
       </div>
     </div>
-    <form hx-post="/games/{{ game.code }}/next-game" hx-swap="none" class="mb-3">
-      <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
-        Go to Game {{ game.games_played + 1 }}
-      </button>
-    </form>
-    <a href="/" class="block text-center bg-slate-200 hover:bg-slate-300 text-slate-700 py-4 rounded-lg text-lg font-semibold">
+    {% if game.games_played < 25 %}
+      <form hx-post="/games/{{ game.code }}/next-game" hx-swap="none" class="mb-3">
+        <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display">
+          Go to Game {{ game.games_played + 1 }}
+        </button>
+      </form>
+    {% else %}
+      <div class="w-full bg-slate-300 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display text-center mb-3">
+        Max games reached
+      </div>
+    {% endif %}
+    <a href="/" class="block text-center bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-4 rounded-lg text-lg font-semibold">
       End for the day
     </a>
   {% endif %}

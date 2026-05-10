@@ -41,6 +41,9 @@ templates.env.filters["ordinal"] = _ordinal
 
 
 MAX_NAME_LENGTH = 16
+MAX_SCORE = 99
+MAX_INNING = 25
+MAX_GAMES = 25
 
 
 class AddPlayerRequest(BaseModel):
@@ -240,9 +243,9 @@ async def score_form(
 
     new_state = copy.deepcopy(game.state)
     if side == "us":
-        new_state.team_score = max(0, new_state.team_score + delta)
+        new_state.team_score = min(MAX_SCORE, max(0, new_state.team_score + delta))
     else:
-        new_state.opponent_score = max(0, new_state.opponent_score + delta)
+        new_state.opponent_score = min(MAX_SCORE, max(0, new_state.opponent_score + delta))
 
     await _persist_and_broadcast(game.code, new_state)
     return Response(status_code=204)
@@ -399,6 +402,11 @@ async def next_inning(code: str):
         raise HTTPException(status_code=409, detail="Game is not in progress")
     if game.last_assignment is None:
         raise HTTPException(status_code=409, detail="No active inning to advance")
+    if game.state.inning >= MAX_INNING:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Maximum {MAX_INNING} innings reached",
+        )
 
     new_state = apply_assignment(game.state, game.last_assignment)
     next_assignment = assign_inning(new_state)
@@ -423,6 +431,11 @@ async def next_game(code: str):
         raise HTTPException(
             status_code=409,
             detail="Current game is not ended",
+        )
+    if game.state.games_played >= MAX_GAMES:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Maximum {MAX_GAMES} games reached",
         )
 
     new_state = copy.deepcopy(game.state)

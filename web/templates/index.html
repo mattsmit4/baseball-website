@@ -1,33 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-<header class="mt-8 mb-8">
-  <h1 class="text-3xl font-bold">Softball Rotation</h1>
-  <p class="text-slate-600 mt-1">Fair defensive rotation for pickup softball.</p>
+<header class="mt-8 mb-8 text-center">
+  <div class="flex items-center justify-center gap-3 mb-1">
+    <svg viewBox="0 0 32 32" class="w-9 h-9" aria-hidden="true">
+      <circle cx="16" cy="16" r="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+      <path d="M5 11 Q 16 16 5 21" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M27 11 Q 16 16 27 21" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+      <g stroke="#dc2626" stroke-width="1.2" stroke-linecap="round">
+        <line x1="7" y1="12.5" x2="8.5" y2="13.5"/>
+        <line x1="7" y1="14.5" x2="8.5" y2="15.5"/>
+        <line x1="7" y1="16.5" x2="8.5" y2="17.5"/>
+        <line x1="7" y1="18.5" x2="8.5" y2="19.5"/>
+        <line x1="23.5" y1="12.5" x2="25" y2="13.5"/>
+        <line x1="23.5" y1="14.5" x2="25" y2="15.5"/>
+        <line x1="23.5" y1="16.5" x2="25" y2="17.5"/>
+        <line x1="23.5" y1="18.5" x2="25" y2="19.5"/>
+      </g>
+    </svg>
+    <h1 class="font-display text-4xl font-bold uppercase tracking-wide text-amber-600 dark:text-amber-300 dark:score-glow">Softball Rotation</h1>
+  </div>
+  <p class="text-slate-600 dark:text-slate-400 mt-2 text-sm">Fair defensive rotation for pickup softball.</p>
 </header>
 
 {% if error == "notfound" %}
-  <div class="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+  <div class="mb-5 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/40 text-red-700 dark:text-red-300 text-sm">
     No game found with that code. Double-check and try again.
   </div>
 {% endif %}
 
 <form action="/join" method="get" class="space-y-3 mb-8">
-  <label class="block text-sm font-medium text-slate-700">Join existing game</label>
+  <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Join existing game</label>
   <input name="code" placeholder="ABCD" required maxlength="4"
          pattern="[A-Za-z]{4}"
          autocapitalize="characters" autocomplete="off"
-         class="w-full p-4 rounded-lg border border-slate-300 text-2xl uppercase font-mono tracking-widest text-center">
-  <button class="w-full bg-slate-700 hover:bg-slate-800 text-white py-4 rounded-lg text-lg font-semibold">
+         class="w-full p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-2xl uppercase font-mono tracking-widest text-center text-amber-700 dark:text-amber-300 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-amber-500 dark:focus:border-amber-400">
+  <button class="w-full bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white py-4 rounded-lg text-lg font-semibold">
     Join
   </button>
 </form>
 
-<div class="border-t border-slate-200 pt-6">
+<div class="border-t border-slate-200 dark:border-slate-800 pt-6">
   <form action="/games/new" method="post" class="space-y-3">
-    <label class="block text-sm font-medium text-slate-700">Your team name</label>
+    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Your team name</label>
     <input name="team_name" placeholder="e.g. Bombers" required maxlength="16"
-           class="w-full p-3 rounded-lg border border-slate-300">
-    <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-lg font-semibold">
+           class="w-full p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 dark:focus:border-amber-400">
+    <button class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display">
       Create new game
     </button>
   </form>

@@ -1,3 +1,5 @@
+import random
+
 from engine.models import GameState, InningAssignment, Player, Position, Preference
 
 INFIELD_POSITIONS = {
@@ -70,6 +72,7 @@ def assign_inning(state: GameState) -> InningAssignment:
     if Position.PITCHER in open_positions:
         pitcher_prefs = [p for p in pool if p.preference == Preference.PITCHER]
         if pitcher_prefs:
+            random.shuffle(pitcher_prefs)
             pitcher_assignment = min(
                 pitcher_prefs,
                 key=lambda p: (p.innings_played - p.innings_sat, p.current_play_streak),
@@ -82,8 +85,10 @@ def assign_inning(state: GameState) -> InningAssignment:
         remaining_pool = pool
         remaining_positions = open_positions
 
+    shuffled_pool = list(remaining_pool)
+    random.shuffle(shuffled_pool)
     sorted_pool = sorted(
-        remaining_pool,
+        shuffled_pool,
         key=lambda p: (p.innings_played - p.innings_sat, p.current_play_streak),
         reverse=True,
     )
