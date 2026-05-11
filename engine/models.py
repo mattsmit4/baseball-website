@@ -30,6 +30,7 @@ class Player:
     innings_sat: int = 0
     current_play_streak: int = 0
     last_inning_at: dict["Position", int] = field(default_factory=dict)
+    sit_history: list[int] = field(default_factory=list)
 
 
 @dataclass

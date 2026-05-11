@@ -1,4 +1,5 @@
 import copy
+import time
 from dataclasses import asdict
 
 from fastapi import FastAPI, Form, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
@@ -67,6 +68,14 @@ class SwapRequest(BaseModel):
 
 
 def _serialize_game(game: Game) -> dict:
+    undo_remaining = 0.0
+    if (
+        game.status == "in_progress"
+        and game.previous_state is not None
+        and game.previous_assignment is not None
+        and game.undo_expires_at is not None
+    ):
+        undo_remaining = max(0.0, game.undo_expires_at - time.monotonic())
     return {
         "code": game.code,
         "status": game.status,
@@ -78,6 +87,8 @@ def _serialize_game(game: Game) -> dict:
         "players": [asdict(p) for p in game.state.players],
         "locks": {pos.value: name for pos, name in game.state.locks.items()},
         "bench_locks": list(game.state.bench_locks),
+        "can_undo": undo_remaining > 0,
+        "undo_seconds_remaining": round(undo_remaining, 2),
         "last_assignment": (
             {
                 "inning": game.last_assignment.inning,
@@ -162,6 +173,13 @@ async def game_page(request: Request, code: str):
             request, "game.html", {"game": payload}
         )
     return payload
+
+
+@app.get("/games/{code}/stats", response_class=HTMLResponse)
+async def game_stats(request: Request, code: str):
+    game = _get_game_or_404(code)
+    payload = _serialize_game(game)
+    return templates.TemplateResponse(request, "stats.html", {"game": payload})
 
 
 @app.post("/games/{code}/players", status_code=201)
@@ -410,10 +428,40 @@ async def next_inning(code: str):
             detail=f"Maximum {MAX_INNING} innings reached",
         )
 
+    snapshot_state = copy.deepcopy(game.state)
+    snapshot_assignment = copy.deepcopy(game.last_assignment)
     new_state = apply_assignment(game.state, game.last_assignment)
     next_assignment = assign_inning(new_state)
     return await _persist_and_broadcast(
-        game.code, new_state, last_assignment=next_assignment
+        game.code,
+        new_state,
+        last_assignment=next_assignment,
+        previous_state=snapshot_state,
+        previous_assignment=snapshot_assignment,
+    )
+
+
+@app.post("/games/{code}/undo-inning")
+async def undo_inning(code: str):
+    game = _get_game_or_404(code)
+    if game.status != "in_progress":
+        raise HTTPException(status_code=409, detail="Game is not in progress")
+    if game.previous_state is None or game.previous_assignment is None:
+        raise HTTPException(status_code=409, detail="Nothing to undo")
+    if (
+        game.undo_expires_at is not None
+        and time.monotonic() > game.undo_expires_at
+    ):
+        raise HTTPException(status_code=409, detail="Undo window expired")
+
+    restored_state = game.previous_state
+    restored_assignment = game.previous_assignment
+    return await _persist_and_broadcast(
+        game.code,
+        restored_state,
+        last_assignment=restored_assignment,
+        previous_state=None,
+        previous_assignment=None,
     )
 
 
@@ -452,12 +500,15 @@ async def next_game(code: str):
         player.innings_sat = 0
         player.current_play_streak = 0
         player.last_inning_at = {}
+        player.sit_history = []
 
     return await _persist_and_broadcast(
         game.code,
         new_state,
         status="setup",
         last_assignment=None,
+        previous_state=None,
+        previous_assignment=None,
     )
 
 

@@ -10,6 +10,7 @@ from engine.models import GameState, InningAssignment
 GAME_CODE_LEN = 4
 GAME_CODE_ALPHABET = string.ascii_uppercase
 IDLE_TTL_SECONDS = 12 * 60 * 60
+UNDO_WINDOW_SECONDS = 10.0
 
 _UNSET = object()
 
@@ -21,6 +22,9 @@ class Game:
     status: str = "setup"
     last_assignment: InningAssignment | None = None
     last_touched_at: float = field(default_factory=time.monotonic)
+    previous_state: GameState | None = None
+    previous_assignment: InningAssignment | None = None
+    undo_expires_at: float | None = None
 
 
 class GameStore:
@@ -64,9 +68,12 @@ class GameStore:
         state: GameState,
         status: str | None = None,
         last_assignment=_UNSET,
+        previous_state=_UNSET,
+        previous_assignment=_UNSET,
     ) -> Game | None:
         """Pass ``last_assignment=None`` to clear it; omit the kwarg to leave
-        it unchanged."""
+        it unchanged. Same convention for ``previous_state`` /
+        ``previous_assignment`` (the undo snapshot)."""
         with self._lock:
             self._sweep_locked()
             game = self._games.get(code)
@@ -77,6 +84,15 @@ class GameStore:
                 game.status = status
             if last_assignment is not _UNSET:
                 game.last_assignment = last_assignment
+            if previous_state is not _UNSET:
+                game.previous_state = previous_state
+                game.undo_expires_at = (
+                    self._clock() + UNDO_WINDOW_SECONDS
+                    if previous_state is not None
+                    else None
+                )
+            if previous_assignment is not _UNSET:
+                game.previous_assignment = previous_assignment
             game.last_touched_at = self._clock()
             return game
 

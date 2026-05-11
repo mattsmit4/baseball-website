@@ -37,6 +37,15 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     .score-tile { animation: fadeIn 0.22s ease-out; }
+    @keyframes undoFade {
+      0%, 99% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .undo-button {
+      animation-name: undoFade;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
     body { background: #f8fafc; }
     html.dark body {
       background:

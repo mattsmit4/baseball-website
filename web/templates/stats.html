@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ game.team_name }} stats{% endblock %}
+{% block content %}
+{% set current_inning = game.last_assignment.inning if game.last_assignment else None %}
+{% set bench_now = (game.last_assignment.bench if game.last_assignment else []) %}
+{% set field_now = [] %}
+{% if game.last_assignment %}
+  {% for pos, name in game.last_assignment.positions.items() %}
+    {% if name %}{% set _ = field_now.append(name) %}{% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set rows = [] %}
+{% for p in game.players %}
+  {% set on_bench_now = p.name in bench_now %}
+  {% set on_field_now = p.name in field_now %}
+  {% set played = p.innings_played + (1 if on_field_now else 0) %}
+  {% set sat = p.innings_sat + (1 if on_bench_now else 0) %}
+  {% set sits = p.sit_history + ([current_inning] if (on_bench_now and current_inning) else []) %}
+  {% set _ = rows.append({"name": p.name, "played": played, "sat": sat, "sits": sits}) %}
+{% endfor %}
+{% set sorted_rows = rows | sort(attribute='sat', reverse=true) %}
+
+<header class="mb-6 relative text-center">
+  <a href="/games/{{ game.code }}" class="absolute left-0 top-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:underline">&larr; back</a>
+  <h1 class="font-display text-3xl font-bold uppercase tracking-wide text-amber-600 dark:text-amber-300 dark:score-glow truncate px-12">{{ game.team_name }}</h1>
+  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+    Bench tracker &middot; Game {{ game.games_played }}
+    {% if game.status == "in_progress" %}&middot; {{ game.inning | ordinal }} inning{% endif %}
+    {% if game.status == "ended" %}&middot; final{% endif %}
+  </p>
+</header>
+
+{% if not game.players %}
+  <p class="text-center text-slate-500 dark:text-slate-400 text-sm">No players yet.</p>
+{% else %}
+  <div class="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+    <div class="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 bg-slate-100 dark:bg-slate-800/60 text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
+      <span>Player</span>
+      <span class="text-right tabular-nums">Played</span>
+      <span class="text-right tabular-nums">Sat</span>
+    </div>
+    <ul class="divide-y divide-slate-200 dark:divide-slate-700">
+      {% for r in sorted_rows %}
+        <li class="px-4 py-3">
+          <div class="grid grid-cols-[1fr_auto_auto] gap-3 items-baseline">
+            <span class="font-medium text-slate-900 dark:text-slate-100 truncate">{{ r.name }}</span>
+            <span class="text-right font-mono tabular-nums text-slate-700 dark:text-slate-300">{{ r.played }}</span>
+            <span class="text-right font-mono tabular-nums {% if r.sat > 0 %}text-amber-700 dark:text-amber-300{% else %}text-slate-400 dark:text-slate-500{% endif %}">{{ r.sat }}</span>
+          </div>
+          {% if r.sits %}
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <span class="uppercase tracking-wide text-[10px] text-slate-400 dark:text-slate-500 mr-1">Sat in:</span>
+              {% for inning in r.sits %}{{ inning | ordinal }}{% if not loop.last %}, {% endif %}{% endfor %}
+            </p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <p class="text-xs text-slate-400 dark:text-slate-500 italic mt-4 text-center">
+    Counts include the current {{ game.inning | ordinal }} inning. The rotation aims for everyone to land near the same number.
+  </p>
+{% endif %}
+
+<a href="/games/{{ game.code }}" class="block mt-6 text-center bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-lg text-lg font-bold uppercase tracking-wide font-display">
+  Back to game
+</a>
+{% endblock %}

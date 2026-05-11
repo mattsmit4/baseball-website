@@ -105,6 +105,7 @@ def apply_assignment(state: GameState, assignment: InningAssignment) -> GameStat
         elif player.name in bench_set:
             player.innings_sat += 1
             player.current_play_streak = 0
+            player.sit_history.append(assignment.inning)
 
     new_state.inning = state.inning + 1
     return new_state
